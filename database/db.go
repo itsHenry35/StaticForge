@@ -23,9 +23,15 @@ var (
 func InitDatabase(cfg *config.Config) error {
 	dsn := cfg.GetDSN()
 
+	// Set log level based on server mode
+	logLevel := logger.Error // Default to Error level
+	if cfg.Server.Mode == "debug" {
+		logLevel = logger.Info // Show all SQL in debug mode
+	}
+
 	var err error
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logLevel),
 		NowFunc: func() time.Time {
 			return time.Now().Local()
 		},
