@@ -1,0 +1,195 @@
+.file-tree {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  user-select: none;
+  font-size: 13px;
+  color: #333;
+  position: relative;
+}
+
+.file-tree::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  border: 2px dashed transparent;
+  transition: border-color 0.2s ease;
+}
+
+.file-tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding-right: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.file-tree-node[draggable='true'] {
+  cursor: grab;
+}
+
+.file-tree-node[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.file-tree-node:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.file-tree-node.selected-file {
+  background-color: #e6f4ff;
+}
+
+.file-tree-node.selected-file:hover {
+  background-color: #bae0ff;
+}
+
+.file-tree-node.selected-folder {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.file-tree-node.selected-folder:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.file-tree-node.dragging {
+  opacity: 0.4;
+  background-color: rgba(24, 144, 255, 0.1);
+  cursor: grabbing !important;
+}
+
+.file-tree-node.drop-target {
+  position: relative;
+}
+
+.file-tree-node.drop-target.drop-before::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background-color: #1890ff;
+  z-index: 10;
+}
+
+.file-tree-node.drop-target.drop-after::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background-color: #1890ff;
+  z-index: 10;
+}
+
+.file-tree-node.drop-target.drop-inside {
+  background-color: rgba(24, 144, 255, 0.15) !important;
+  border: 1px dashed #1890ff;
+  box-sizing: border-box;
+}
+
+.file-tree-node-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-tree-expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #666;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.file-tree-expand-icon:hover {
+  color: #333;
+}
+
+.file-tree-expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.file-tree-expand-icon-placeholder {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.file-tree-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  color: #faad14;
+  flex-shrink: 0;
+}
+
+.file-tree-icon .anticon-file-outlined {
+  color: #8c8c8c;
+}
+
+.file-tree-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.file-tree-actions {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.file-tree-node:hover .file-tree-actions {
+  display: flex;
+}
+
+.file-tree-children {
+  /* No additional styles needed, nesting is handled by padding */
+}
+
+/* Scrollbar styling */
+.file-tree::-webkit-scrollbar {
+  width: 8px;
+}
+
+.file-tree::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.file-tree::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.file-tree::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
