@@ -164,7 +164,7 @@ export const Login: React.FC = () => {
                 <Button
                   key={provider.name}
                   block
-                  icon={provider.icon ? <img src={provider.icon} alt={provider.name} className="w-4 h-4" /> : undefined}
+                  icon={provider.icon ? <img src={provider.icon} alt={provider.name} style={{ width: 24, height: 24 }} /> : undefined}
                   onClick={() => handleOAuthLogin(provider.name)}
                 >
                   {provider.name}
