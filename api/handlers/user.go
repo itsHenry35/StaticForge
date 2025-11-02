@@ -17,13 +17,13 @@ func GetCurrentUser(c *gin.Context) {
 	user := userInterface.(models.User)
 
 	utils.Success(c, types.UserResponse{
-		ID:            user.ID,
-		Username:      user.Username,
-		DisplayName:   user.DisplayName,
-		Email:         user.Email,
-		IsAdmin:       user.IsAdmin,
-		IsActive:      user.IsActive,
-		CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+		ID:          user.ID,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		Email:       user.Email,
+		IsAdmin:     user.IsAdmin,
+		IsActive:    user.IsActive,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
 }
 
@@ -91,13 +91,13 @@ func UpdateCurrentUser(c *gin.Context) {
 	database.DB.First(&user, userID)
 
 	utils.Success(c, types.UserResponse{
-		ID:            user.ID,
-		Username:      user.Username,
-		DisplayName:   user.DisplayName,
-		Email:         user.Email,
-		IsAdmin:       user.IsAdmin,
-		IsActive:      user.IsActive,
-		CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+		ID:          user.ID,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		Email:       user.Email,
+		IsAdmin:     user.IsAdmin,
+		IsActive:    user.IsActive,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
 }
 
@@ -157,13 +157,13 @@ func GetUsers(c *gin.Context) {
 	var userResponses []types.UserResponse
 	for _, user := range users {
 		userResponses = append(userResponses, types.UserResponse{
-			ID:            user.ID,
-			Username:      user.Username,
-			DisplayName:   user.DisplayName,
-			Email:         user.Email,
-			IsAdmin:       user.IsAdmin,
-			IsActive:      user.IsActive,
-				CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+			ID:          user.ID,
+			Username:    user.Username,
+			DisplayName: user.DisplayName,
+			Email:       user.Email,
+			IsAdmin:     user.IsAdmin,
+			IsActive:    user.IsActive,
+			CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 		})
 	}
 
@@ -181,13 +181,13 @@ func GetUserByID(c *gin.Context) {
 	}
 
 	utils.Success(c, types.UserResponse{
-		ID:            user.ID,
-		Username:      user.Username,
-		DisplayName:   user.DisplayName,
-		Email:         user.Email,
-		IsAdmin:       user.IsAdmin,
-		IsActive:      user.IsActive,
-		CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+		ID:          user.ID,
+		Username:    user.Username,
+		DisplayName: user.DisplayName,
+		Email:       user.Email,
+		IsAdmin:     user.IsAdmin,
+		IsActive:    user.IsActive,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
 }
 
@@ -234,12 +234,12 @@ func UpdateUser(c *gin.Context) {
 	database.DB.First(&user, userID)
 
 	utils.Success(c, types.UserResponse{
-		ID:            user.ID,
-		Username:      user.Username,
-		Email:         user.Email,
-		IsAdmin:       user.IsAdmin,
-		IsActive:      user.IsActive,
-		CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		IsAdmin:   user.IsAdmin,
+		IsActive:  user.IsActive,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 	})
 }
 
@@ -307,6 +307,9 @@ func DeleteUser(c *gin.Context) {
 			user.Username,
 		)
 		utils.DeleteDir(projectPath)
+
+		// Delete analytics
+		database.DB.Where("project_id = ?", project.ID).Delete(&models.Analytics{})
 
 		// Delete project from database
 		database.DB.Delete(&project)
