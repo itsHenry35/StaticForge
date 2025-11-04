@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, Form, Input, Button, Alert } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 export const SiteAuth: React.FC = () => {
+  const { t } = useTranslation();
   const { name } = useParams<{ name: string }>();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -45,19 +47,19 @@ export const SiteAuth: React.FC = () => {
             <LockOutlined />
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
-            Access Required
+            {t('auth.accessRequired')}
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>
             {requirePassword
-              ? 'This site is password protected'
-              : 'You need to consent to access this site'}
+              ? t('auth.sitePasswordProtected')
+              : t('auth.needConsent')}
           </p>
         </div>
 
         {error === 'invalid_password' && (
           <Alert
-            message="Invalid Password"
-            description="The password you entered is incorrect. Please try again."
+            message={t('auth.invalidPassword')}
+            description={t('auth.incorrectPassword')}
             type="error"
             showIcon
             style={{ marginBottom: 20 }}
@@ -68,19 +70,19 @@ export const SiteAuth: React.FC = () => {
           <Form onFinish={handlePasswordSubmit} layout="vertical">
             <Form.Item
               name="password"
-              label="Password"
-              rules={[{ required: true, message: 'Please enter the password' }]}
+              label={t('auth.password')}
+              rules={[{ required: true, message: t('validation.pleaseEnterPassword') }]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Enter site password"
+                placeholder={t('auth.enterSitePassword')}
                 autoFocus
               />
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0 }}>
               <Button type="primary" htmlType="submit" loading={loading} block>
-                Access Site
+                {t('auth.accessSite')}
               </Button>
             </Form.Item>
           </Form>
@@ -94,11 +96,11 @@ export const SiteAuth: React.FC = () => {
               border: '1px solid var(--border-light)'
             }}>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
-                This website is user-uploaded content and not affiliated with this platform.
+                {t('auth.userUploadedDisclaimer')}
               </p>
             </div>
             <Button type="primary" onClick={handleConsent} block>
-              Continue
+              {t('auth.continue')}
             </Button>
           </div>
         )}

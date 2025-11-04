@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Tabs, Table, Button, Popconfirm, Tag, Space, Avatar, Select, Input } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Tabs, Table, Button, Popconfirm, Tag, Space, Avatar, Input } from 'antd';
+import type { FilterDropdownProps } from 'antd/es/table/interface';
 import {
   UserOutlined,
   ProjectOutlined,
@@ -12,12 +13,14 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
 import type { User, Project } from '../types';
 import { Settings } from './Settings';
 
 export const Admin: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -84,7 +87,7 @@ export const Admin: React.FC = () => {
 
   const userColumns = [
     {
-      title: 'User',
+      title: t('admin.user'),
       dataIndex: 'username',
       key: 'username',
       render: (username: string, record: User) => (
@@ -98,37 +101,37 @@ export const Admin: React.FC = () => {
       ),
     },
     {
-      title: 'Role',
+      title: t('admin.role'),
       dataIndex: 'is_admin',
       key: 'is_admin',
       render: (isAdmin: boolean) => (
-        <Tag color={isAdmin ? 'red' : 'blue'}>{isAdmin ? 'Admin' : 'User'}</Tag>
+        <Tag color={isAdmin ? 'red' : 'blue'}>{isAdmin ? t('admin.admin') : t('admin.userRole')}</Tag>
       ),
     },
     {
-      title: 'Status',
+      title: t('admin.status'),
       dataIndex: 'is_active',
       key: 'is_active',
       render: (isActive: boolean) => (
         <Tag color={isActive ? 'green' : 'default'}>
-          {isActive ? 'Active' : 'Disabled'}
+          {isActive ? t('admin.active') : t('admin.disabled')}
         </Tag>
       ),
     },
     {
-      title: 'OAuth Provider',
+      title: t('admin.oauthProvider'),
       dataIndex: 'oauth_provider',
       key: 'oauth_provider',
       render: (provider?: string) => provider || '-',
     },
     {
-      title: 'Created At',
+      title: t('admin.createdAt'),
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date: string) => new Date(date).toLocaleDateString(),
     },
     {
-      title: 'Actions',
+      title: t('admin.actions'),
       key: 'actions',
       render: (_: unknown, record: User) => {
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -143,31 +146,31 @@ export const Admin: React.FC = () => {
                   icon={record.is_admin ? <UserOutlined /> : <CrownOutlined />}
                   onClick={() => handleToggleUserAdmin(record.id)}
                 >
-                  {record.is_admin ? 'Revoke Admin' : 'Make Admin'}
+                  {record.is_admin ? t('admin.revokeAdmin') : t('admin.makeAdmin')}
                 </Button>
                 <Button
                   size="small"
                   icon={record.is_active ? <StopOutlined /> : <CheckCircleOutlined />}
                   onClick={() => handleToggleUserStatus(record.id)}
                 >
-                  {record.is_active ? 'Disable' : 'Enable'}
+                  {record.is_active ? t('admin.disable') : t('admin.enable')}
                 </Button>
                 <Popconfirm
-                  title="Delete user?"
-                  description="This will also delete all user's projects."
+                  title={t('admin.deleteUser')}
+                  description={t('admin.deleteUserWarning')}
                   onConfirm={() => handleDeleteUser(record.id)}
-                  okText="Yes"
-                  cancelText="No"
+                  okText={t('admin.yes')}
+                  cancelText={t('admin.no')}
                 >
                   <Button size="small" danger icon={<DeleteOutlined />}>
-                    Delete
+                    {t('admin.delete')}
                   </Button>
                 </Popconfirm>
               </>
             )}
             {isCurrentUser && (
               <span style={{ fontSize: 13, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                You (Current User)
+                {t('admin.youCurrentUser')}
               </span>
             )}
           </Space>
@@ -178,13 +181,13 @@ export const Admin: React.FC = () => {
 
   const projectColumns = [
     {
-      title: 'Project',
+      title: t('admin.project'),
       dataIndex: 'name',
       key: 'name',
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
         <div style={{ padding: 8 }}>
           <Input
-            placeholder="Search project name"
+            placeholder={t('admin.searchProjectName')}
             value={selectedKeys[0]}
             onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
             onPressEnter={() => confirm()}
@@ -198,10 +201,10 @@ export const Admin: React.FC = () => {
               size="small"
               style={{ width: 90 }}
             >
-              Search
+              {t('admin.search')}
             </Button>
             <Button onClick={() => { clearFilters?.(); confirm(); }} size="small" style={{ width: 90 }}>
-              Reset
+              {t('admin.reset')}
             </Button>
           </Space>
         </div>
@@ -209,7 +212,7 @@ export const Admin: React.FC = () => {
       filterIcon: (filtered: boolean) => (
         <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
       ),
-      onFilter: (value, record) =>
+      onFilter: (value: unknown, record: Project) =>
         record.name.toLowerCase().includes((value as string).toLowerCase()) ||
         record.display_name.toLowerCase().includes((value as string).toLowerCase()),
       render: (name: string, record: Project) => (
@@ -220,44 +223,44 @@ export const Admin: React.FC = () => {
       ),
     },
     {
-      title: 'Owner',
+      title: t('admin.owner'),
       dataIndex: 'username',
       key: 'username',
       filters: Array.from(new Set(projects.map(p => p.username))).sort().map(owner => ({
         text: owner,
         value: owner,
       })),
-      onFilter: (value, record) => record.username === value,
+      onFilter: (value: unknown, record: Project) => record.username === value,
     },
     {
-      title: 'Description',
+      title: t('admin.description'),
       dataIndex: 'description',
       key: 'description',
       render: (desc?: string) => desc || '-',
     },
     {
-      title: 'Status',
+      title: t('admin.status'),
       key: 'status',
       render: (_: unknown, record: Project) => (
         <Space>
           <Tag color={record.is_active ? 'green' : 'red'}>
-            {record.is_active ? 'Active' : 'Disabled'}
+            {record.is_active ? t('admin.active') : t('admin.disabled')}
           </Tag>
           <Tag color={record.is_published ? 'blue' : 'default'}>
-            {record.is_published ? 'Published' : 'Draft'}
+            {record.is_published ? t('admin.published') : t('admin.draft')}
           </Tag>
-          {record.has_password && <Tag color="orange">Protected</Tag>}
+          {record.has_password && <Tag color="orange">{t('admin.protected')}</Tag>}
         </Space>
       ),
     },
     {
-      title: 'Created At',
+      title: t('admin.createdAt'),
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date: string) => new Date(date).toLocaleDateString(),
     },
     {
-      title: 'Actions',
+      title: t('admin.actions'),
       key: 'actions',
       render: (_: unknown, record: Project) => (
         <Space>
@@ -266,14 +269,14 @@ export const Admin: React.FC = () => {
             icon={<EditOutlined />}
             onClick={() => navigate(`/projects/${record.id}`)}
           >
-            Edit
+            {t('admin.edit')}
           </Button>
           <Button
             size="small"
             icon={record.is_active ? <StopOutlined /> : <CheckCircleOutlined />}
             onClick={() => handleToggleProjectStatus(record.id)}
           >
-            {record.is_active ? 'Disable' : 'Enable'}
+            {record.is_active ? t('admin.disable') : t('admin.enable')}
           </Button>
           {record.is_published && record.is_active && (
             <Button
@@ -282,18 +285,18 @@ export const Admin: React.FC = () => {
               href={`/s/${record.name}`}
               target="_blank"
             >
-              View
+              {t('admin.view')}
             </Button>
           )}
           <Popconfirm
-            title="Delete project?"
-            description="This action cannot be undone."
+            title={t('admin.deleteProject')}
+            description={t('admin.cannotUndo')}
             onConfirm={() => handleDeleteProject(record.id)}
-            okText="Yes"
-            cancelText="No"
+            okText={t('admin.yes')}
+            cancelText={t('admin.no')}
           >
             <Button size="small" danger icon={<DeleteOutlined />}>
-              Delete
+              {t('admin.delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -306,7 +309,7 @@ export const Admin: React.FC = () => {
       key: '1',
       label: (
         <span>
-          <UserOutlined /> Users ({users.length})
+          <UserOutlined /> {t('admin.users', { count: users.length })}
         </span>
       ),
       children: (
@@ -323,7 +326,7 @@ export const Admin: React.FC = () => {
       key: '2',
       label: (
         <span>
-          <ProjectOutlined /> Projects ({projects.length})
+          <ProjectOutlined /> {t('admin.projects', { count: projects.length })}
         </span>
       ),
       children: (
@@ -340,7 +343,7 @@ export const Admin: React.FC = () => {
       key: '3',
       label: (
         <span>
-          <SettingOutlined /> Settings
+          <SettingOutlined /> {t('admin.settings')}
         </span>
       ),
       children: <Settings />,
@@ -350,8 +353,8 @@ export const Admin: React.FC = () => {
   return (
     <>
       <div className="page-header">
-        <h1 className="page-header__title">Admin Panel</h1>
-        <p className="page-header__subtitle">Manage users and projects</p>
+        <h1 className="page-header__title">{t('admin.title')}</h1>
+        <p className="page-header__subtitle">{t('admin.subtitle')}</p>
       </div>
 
       <Card bodyStyle={{ padding: 0 }}>

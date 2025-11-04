@@ -9,9 +9,11 @@ import {
   TeamOutlined,
   MenuOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { PageTransition } from './PageTransition';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 const { Header, Content } = AntLayout;
 
@@ -20,6 +22,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,7 +38,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     {
       key: 'profile',
       icon: <UserOutlined />,
-      label: 'Profile',
+      label: t('nav.profile'),
       onClick: () => navigate('/profile'),
     },
     {
@@ -44,7 +47,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: 'Logout',
+      label: t('nav.logout'),
       onClick: handleLogout,
     },
   ];
@@ -53,12 +56,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     {
       key: '/dashboard',
       icon: <DashboardOutlined />,
-      label: <Link to="/dashboard">Dashboard</Link>,
+      label: <Link to="/dashboard">{t('nav.dashboard')}</Link>,
     },
     {
       key: '/projects',
       icon: <ProjectOutlined />,
-      label: <Link to="/projects">Projects</Link>,
+      label: <Link to="/projects">{t('nav.projects')}</Link>,
     },
   ];
 
@@ -66,7 +69,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     menuItems.push({
       key: '/admin',
       icon: <TeamOutlined />,
-      label: <Link to="/admin">Admin</Link>,
+      label: <Link to="/admin">{t('nav.admin')}</Link>,
     });
   }
 
@@ -76,8 +79,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Link to="/dashboard" className="app-topbar__brand">
           <span className="app-topbar__mark">SF</span>
           <span className="app-topbar__title">
-            <span>StaticForge</span>
-            <span>Site workspace</span>
+            <span>{t('nav.staticForge')}</span>
+            <span>{t('nav.siteWorkspace')}</span>
           </span>
         </Link>
         {!isMobile && (
@@ -89,6 +92,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           />
         )}
         <div className="app-topbar__actions">
+          {!isMobile && (
+            <div style={{ marginRight: '16px' }}>
+              <LanguageSwitcher />
+            </div>
+          )}
           {isMobile ? (
             <Button
               type="text"
@@ -120,8 +128,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="app-topbar__brand app-drawer__title">
             <span className="app-topbar__mark">SF</span>
             <span className="app-topbar__title">
-              <span>StaticForge</span>
-              <span>Site workspace</span>
+              <span>{t('nav.staticForge')}</span>
+              <span>{t('nav.siteWorkspace')}</span>
             </span>
           </div>
         }
@@ -138,6 +146,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           className="app-drawer__menu"
         />
         <div className="app-drawer__footer">
+          <div style={{ marginBottom: '12px', padding: '8px' }}>
+            <LanguageSwitcher />
+          </div>
           <button
             type="button"
             className="app-drawer__profile"
@@ -155,7 +166,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="text-left">
               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{user?.display_name || user?.username}</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-                {user?.is_admin ? 'Administrator' : 'User'}
+                {user?.is_admin ? t('nav.administrator') : t('nav.user')}
               </div>
             </div>
           </button>
@@ -169,7 +180,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             }}
             className="w-full mt-2"
           >
-            Logout
+            {t('nav.logout')}
           </Button>
         </div>
       </Drawer>

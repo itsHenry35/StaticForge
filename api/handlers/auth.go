@@ -22,38 +22,38 @@ import (
 func Login(c *gin.Context) {
 	var req types.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	var user models.User
 	if err := database.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
-		utils.Unauthorized(c, "Invalid username or password")
+		utils.Unauthorized(c, utils.MsgInvalidCredentials)
 		return
 	}
 
 	if !user.IsActive {
-		utils.Forbidden(c, "Account is disabled")
+		utils.Forbidden(c, utils.MsgAccountDisabled)
 		return
 	}
 
 	if !user.HasPassword() {
-		utils.BadRequest(c, "This account uses OAuth login")
+		utils.BadRequest(c, utils.MsgAccountUsesOAuth)
 		return
 	}
 
 	if !utils.CheckPassword(req.Password, user.Password) {
-		utils.Unauthorized(c, "Invalid username or password")
+		utils.Unauthorized(c, utils.MsgInvalidCredentials)
 		return
 	}
 
 	token, err := utils.GenerateToken(user.ID, user.Username, user.IsAdmin)
 	if err != nil {
-		utils.InternalServerError(c, "Failed to generate token")
+		utils.InternalServerError(c, utils.MsgTokenGenerationFailed)
 		return
 	}
 
-	utils.Success(c, types.LoginResponse{
+	utils.SuccessWithCode(c, utils.MsgLoginSuccess, types.LoginResponse{
 		Token: token,
 		User: types.UserResponse{
 			ID:            user.ID,
@@ -71,47 +71,47 @@ func Login(c *gin.Context) {
 func Register(c *gin.Context) {
 	cfg := config.GetConfig()
 	if !cfg.AllowRegister {
-		utils.Forbidden(c, "Registration is disabled")
+		utils.Forbidden(c, utils.MsgRegistrationDisabled)
 		return
 	}
 
 	var req types.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	if !utils.ValidateUsername(req.Username) {
-		utils.BadRequest(c, "Invalid username format (3-50 alphanumeric characters, underscore, hyphen)")
+		utils.BadRequest(c, utils.MsgInvalidUsername)
 		return
 	}
 
 	if !utils.ValidateEmail(req.Email) {
-		utils.BadRequest(c, "Invalid email format")
+		utils.BadRequest(c, utils.MsgInvalidEmail)
 		return
 	}
 
 	if !utils.ValidatePassword(req.Password) {
-		utils.BadRequest(c, "Password must be at least 6 characters")
+		utils.BadRequest(c, utils.MsgInvalidPassword)
 		return
 	}
 
 	// Check if username already exists
 	var existingUser models.User
 	if err := database.DB.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
-		utils.BadRequest(c, "Username already exists")
+		utils.BadRequest(c, utils.MsgUsernameExists)
 		return
 	}
 
 	// Check if email already exists
 	if err := database.DB.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
-		utils.BadRequest(c, "Email already exists")
+		utils.BadRequest(c, utils.MsgEmailExists)
 		return
 	}
 
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		utils.InternalServerError(c, "Failed to hash password")
+		utils.InternalServerError(c, utils.MsgPasswordHashFailed)
 		return
 	}
 
@@ -125,17 +125,17 @@ func Register(c *gin.Context) {
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
-		utils.InternalServerError(c, "Failed to create user")
+		utils.InternalServerError(c, utils.MsgUserCreationFailed)
 		return
 	}
 
 	token, err := utils.GenerateToken(user.ID, user.Username, user.IsAdmin)
 	if err != nil {
-		utils.InternalServerError(c, "Failed to generate token")
+		utils.InternalServerError(c, utils.MsgTokenGenerationFailed)
 		return
 	}
 
-	utils.Success(c, types.LoginResponse{
+	utils.SuccessWithCode(c, utils.MsgRegisterSuccess, types.LoginResponse{
 		Token: token,
 		User: types.UserResponse{
 			ID:            user.ID,
@@ -171,7 +171,7 @@ func InitiateOAuthLogin(c *gin.Context) {
 	cfg := config.GetConfig()
 	provider, err := cfg.GetOAuthProvider(providerName)
 	if err != nil {
-		utils.BadRequest(c, "Invalid OAuth provider")
+		utils.BadRequest(c, utils.MsgInvalidOAuthProvider)
 		return
 	}
 

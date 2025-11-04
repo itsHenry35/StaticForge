@@ -38,7 +38,7 @@ func ScanProjectFiles(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -88,7 +88,7 @@ func ScanProjectFiles(c *gin.Context) {
 	})
 
 	if err != nil {
-		utils.InternalServerError(c, "Failed to scan project files")
+		utils.InternalServerError(c, utils.MsgInternalError)
 		return
 	}
 
@@ -103,7 +103,7 @@ func GetFileContentByPath(c *gin.Context) {
 	isAdmin, _ := c.Get("is_admin")
 
 	if filePath == "" {
-		utils.BadRequest(c, "File path is required")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -116,7 +116,7 @@ func GetFileContentByPath(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -127,26 +127,26 @@ func GetFileContentByPath(c *gin.Context) {
 
 	// Security check: ensure the path is within project directory
 	if !isPathSafe(fullPath, projectPath) {
-		utils.BadRequest(c, "Invalid file path")
+		utils.BadRequest(c, utils.MsgInvalidFilePath)
 		return
 	}
 
 	// Check if it's a folder
 	info, err := os.Stat(fullPath)
 	if err != nil {
-		utils.NotFound(c, "File not found")
+		utils.NotFound(c, utils.MsgFileNotFound)
 		return
 	}
 
 	if info.IsDir() {
-		utils.BadRequest(c, "Cannot get content of a folder")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	// Read file content
 	content, err := utils.ReadFile(fullPath)
 	if err != nil {
-		utils.InternalServerError(c, "Failed to read file")
+		utils.InternalServerError(c, utils.MsgFileReadFailed)
 		return
 	}
 
@@ -173,7 +173,7 @@ func UpdateFileContentByPath(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -186,7 +186,7 @@ func UpdateFileContentByPath(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -197,29 +197,29 @@ func UpdateFileContentByPath(c *gin.Context) {
 
 	// Security check
 	if !isPathSafe(fullPath, projectPath) {
-		utils.BadRequest(c, "Invalid file path")
+		utils.BadRequest(c, utils.MsgInvalidFilePath)
 		return
 	}
 
 	// Check if file exists
 	info, err := os.Stat(fullPath)
 	if err != nil {
-		utils.NotFound(c, "File not found")
+		utils.NotFound(c, utils.MsgFileNotFound)
 		return
 	}
 
 	if info.IsDir() {
-		utils.BadRequest(c, "Cannot update content of a folder")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	// Write file content
 	if err := utils.WriteFile(fullPath, []byte(req.Content)); err != nil {
-		utils.InternalServerError(c, "Failed to write file")
+		utils.InternalServerError(c, utils.MsgFileWriteFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "File updated successfully", nil)
+	utils.SuccessWithCode(c, utils.MsgFileSaved, nil)
 }
 
 // RenameFileByPath renames a file by path
@@ -234,7 +234,7 @@ func RenameFileByPath(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -250,13 +250,13 @@ func RenameFileByPath(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
 	// Prevent renaming index.html
 	if req.Path == "index.html" {
-		utils.BadRequest(c, "Cannot rename index.html")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -267,7 +267,7 @@ func RenameFileByPath(c *gin.Context) {
 
 	// Security check
 	if !isPathSafe(oldFullPath, projectPath) {
-		utils.BadRequest(c, "Invalid file path")
+		utils.BadRequest(c, utils.MsgInvalidFilePath)
 		return
 	}
 
@@ -279,17 +279,17 @@ func RenameFileByPath(c *gin.Context) {
 
 	// Check if new path already exists
 	if _, err := os.Stat(newFullPath); err == nil {
-		utils.BadRequest(c, "A file with this name already exists")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	// Rename file
 	if err := utils.RenameFile(oldFullPath, newFullPath); err != nil {
-		utils.InternalServerError(c, "Failed to rename file")
+		utils.InternalServerError(c, utils.MsgFileRenameFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "File renamed successfully", nil)
+	utils.SuccessWithCode(c, utils.MsgFileRenamed, nil)
 }
 
 // DeleteFileByPath deletes a file by path
@@ -303,7 +303,7 @@ func DeleteFileByPath(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -316,13 +316,13 @@ func DeleteFileByPath(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
 	// Prevent deleting index.html
 	if req.Path == "index.html" {
-		utils.BadRequest(c, "Cannot delete index.html")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -333,31 +333,31 @@ func DeleteFileByPath(c *gin.Context) {
 
 	// Security check
 	if !isPathSafe(fullPath, projectPath) {
-		utils.BadRequest(c, "Invalid file path")
+		utils.BadRequest(c, utils.MsgInvalidFilePath)
 		return
 	}
 
 	// Check if file exists
 	info, err := os.Stat(fullPath)
 	if err != nil {
-		utils.NotFound(c, "File not found")
+		utils.NotFound(c, utils.MsgFileNotFound)
 		return
 	}
 
 	// Delete file or folder
 	if info.IsDir() {
 		if err := utils.DeleteDir(fullPath); err != nil {
-			utils.InternalServerError(c, "Failed to delete folder")
+			utils.InternalServerError(c, utils.MsgDirectoryDeleteFailed)
 			return
 		}
+		utils.SuccessWithCode(c, utils.MsgDirectoryDeleted, nil)
 	} else {
 		if err := utils.DeleteFile(fullPath); err != nil {
-			utils.InternalServerError(c, "Failed to delete file")
+			utils.InternalServerError(c, utils.MsgFileDeleteFailed)
 			return
 		}
+		utils.SuccessWithCode(c, utils.MsgFileDeleted, nil)
 	}
-
-	utils.SuccessWithMessage(c, "File deleted successfully", nil)
 }
 
 // MoveFileByPath moves a file or folder to a new location
@@ -372,7 +372,7 @@ func MoveFileByPath(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -385,13 +385,13 @@ func MoveFileByPath(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
 	// Prevent moving index.html
 	if req.SourcePath == "index.html" || req.SourcePath == "/index.html" {
-		utils.BadRequest(c, "Cannot move index.html")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -404,19 +404,19 @@ func MoveFileByPath(c *gin.Context) {
 
 	// Security checks
 	if !isPathSafe(sourceFullPath, projectPath) {
-		utils.BadRequest(c, "Invalid source path")
+		utils.BadRequest(c, utils.MsgInvalidFilePath)
 		return
 	}
 
 	if !isPathSafe(targetFullPath, projectPath) {
-		utils.BadRequest(c, "Invalid target path")
+		utils.BadRequest(c, utils.MsgInvalidFilePath)
 		return
 	}
 
 	// Check if source exists
 	sourceInfo, err := os.Stat(sourceFullPath)
 	if err != nil {
-		utils.NotFound(c, "Source file not found")
+		utils.NotFound(c, utils.MsgFileNotFound)
 		return
 	}
 
@@ -437,20 +437,20 @@ func MoveFileByPath(c *gin.Context) {
 
 	// Check if final target already exists
 	if _, err := os.Stat(finalTargetPath); err == nil {
-		utils.BadRequest(c, "A file with this name already exists in the target location")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	// Ensure parent directory of target exists
 	finalTargetDir := filepath.Dir(finalTargetPath)
 	if err := utils.EnsureDir(finalTargetDir); err != nil {
-		utils.InternalServerError(c, "Failed to create target directory")
+		utils.InternalServerError(c, utils.MsgFileMoveFailed)
 		return
 	}
 
 	// Move file or folder
 	if err := os.Rename(sourceFullPath, finalTargetPath); err != nil {
-		utils.InternalServerError(c, "Failed to move file")
+		utils.InternalServerError(c, utils.MsgFileMoveFailed)
 		return
 	}
 
@@ -458,7 +458,7 @@ func MoveFileByPath(c *gin.Context) {
 	relPath, _ := filepath.Rel(projectPath, finalTargetPath)
 	relPath = filepath.ToSlash(relPath)
 
-	utils.Success(c, map[string]interface{}{
+	utils.SuccessWithCode(c, utils.MsgFileMoved, map[string]interface{}{
 		"path":       relPath,
 		"name":       sourceFilename,
 		"size":       sourceInfo.Size(),

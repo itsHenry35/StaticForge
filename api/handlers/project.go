@@ -16,12 +16,12 @@ import (
 func CreateProject(c *gin.Context) {
 	var req types.CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	if !utils.ValidateProjectName(req.Name) {
-		utils.BadRequest(c, "Invalid project name (3-100 alphanumeric characters, underscore, hyphen)")
+		utils.BadRequest(c, utils.MsgInvalidProjectName)
 		return
 	}
 
@@ -31,7 +31,7 @@ func CreateProject(c *gin.Context) {
 	// Check if project name already exists globally
 	var existingProject models.Project
 	if err := database.DB.Where("name = ?", req.Name).First(&existingProject).Error; err == nil {
-		utils.BadRequest(c, "Project name already exists")
+		utils.BadRequest(c, utils.MsgProjectExists)
 		return
 	}
 
@@ -50,14 +50,14 @@ func CreateProject(c *gin.Context) {
 	}
 
 	if err := database.DB.Create(&project).Error; err != nil {
-		utils.InternalServerError(c, "Failed to create project")
+		utils.InternalServerError(c, utils.MsgProjectCreationFailed)
 		return
 	}
 
 	// Create project directory
 	projectPath := project.GetPath("data/projects", username.(string))
 	if err := utils.EnsureDir(projectPath); err != nil {
-		utils.InternalServerError(c, "Failed to create project directory")
+		utils.InternalServerError(c, utils.MsgProjectCreationFailed)
 		return
 	}
 
@@ -65,11 +65,11 @@ func CreateProject(c *gin.Context) {
 	indexPath := filepath.Join(projectPath, "index.html")
 	defaultHTML := utils.CreateDefaultIndexHTML(req.DisplayName)
 	if err := utils.WriteFile(indexPath, []byte(defaultHTML)); err != nil {
-		utils.InternalServerError(c, "Failed to create index.html")
+		utils.InternalServerError(c, utils.MsgProjectCreationFailed)
 		return
 	}
 
-	utils.Success(c, types.ProjectResponse{
+	utils.SuccessWithCode(c, utils.MsgProjectCreated, types.ProjectResponse{
 		ID:          project.ID,
 		Name:        project.Name,
 		DisplayName: project.DisplayName,
@@ -91,7 +91,7 @@ func GetProjects(c *gin.Context) {
 
 	var projects []models.Project
 	if err := database.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&projects).Error; err != nil {
-		utils.InternalServerError(c, "Failed to get projects")
+		utils.InternalServerError(c, utils.MsgDatabaseError)
 		return
 	}
 
@@ -130,7 +130,7 @@ func GetProjectByID(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -159,7 +159,7 @@ func UpdateProject(c *gin.Context) {
 
 	var req types.UpdateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -171,7 +171,7 @@ func UpdateProject(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -187,14 +187,14 @@ func UpdateProject(c *gin.Context) {
 
 	if len(updates) > 0 {
 		if err := database.DB.Model(&project).Updates(updates).Error; err != nil {
-			utils.InternalServerError(c, "Failed to update project")
+			utils.InternalServerError(c, utils.MsgProjectUpdateFailed)
 			return
 		}
 	}
 
 	database.DB.Preload("User").First(&project, projectID)
 
-	utils.Success(c, types.ProjectResponse{
+	utils.SuccessWithCode(c, utils.MsgProjectUpdated, types.ProjectResponse{
 		ID:          project.ID,
 		Name:        project.Name,
 		DisplayName: project.DisplayName,
@@ -217,7 +217,7 @@ func PublishProject(c *gin.Context) {
 
 	var req types.PublishProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -229,7 +229,7 @@ func PublishProject(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -241,7 +241,7 @@ func PublishProject(c *gin.Context) {
 	if req.Password != "" {
 		hashedPassword, err := utils.HashPassword(req.Password)
 		if err != nil {
-			utils.InternalServerError(c, "Failed to hash password")
+			utils.InternalServerError(c, utils.MsgPasswordHashFailed)
 			return
 		}
 		updates["password"] = hashedPassword
@@ -252,11 +252,19 @@ func PublishProject(c *gin.Context) {
 	}
 
 	if err := database.DB.Model(&project).Updates(updates).Error; err != nil {
-		utils.InternalServerError(c, "Failed to update project")
+		if req.IsPublished {
+			utils.InternalServerError(c, utils.MsgProjectPublishFailed)
+		} else {
+			utils.InternalServerError(c, utils.MsgProjectUnpublishFailed)
+		}
 		return
 	}
 
-	utils.SuccessWithMessage(c, "Project published status updated", nil)
+	if req.IsPublished {
+		utils.SuccessWithCode(c, utils.MsgProjectPublished, nil)
+	} else {
+		utils.SuccessWithCode(c, utils.MsgProjectUnpublished, nil)
+	}
 }
 
 // DeleteProject deletes a project
@@ -273,7 +281,7 @@ func DeleteProject(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -281,7 +289,7 @@ func DeleteProject(c *gin.Context) {
 	cfg := config.GetConfig()
 	projectPath := project.GetPath(cfg.Upload.DataDir, project.User.Username)
 	if err := utils.DeleteDir(projectPath); err != nil {
-		utils.InternalServerError(c, "Failed to delete project directory")
+		utils.InternalServerError(c, utils.MsgProjectDeleteFailed)
 		return
 	}
 
@@ -290,18 +298,18 @@ func DeleteProject(c *gin.Context) {
 
 	// Delete project
 	if err := database.DB.Delete(&project).Error; err != nil {
-		utils.InternalServerError(c, "Failed to delete project")
+		utils.InternalServerError(c, utils.MsgProjectDeleteFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "Project deleted successfully", nil)
+	utils.SuccessWithCode(c, utils.MsgProjectDeleted, nil)
 }
 
 // GetAllProjects returns all projects (admin only)
 func GetAllProjects(c *gin.Context) {
 	var projects []models.Project
 	if err := database.DB.Preload("User").Order("created_at DESC").Find(&projects).Error; err != nil {
-		utils.InternalServerError(c, "Failed to get projects")
+		utils.InternalServerError(c, utils.MsgDatabaseError)
 		return
 	}
 
@@ -331,14 +339,14 @@ func ToggleProjectStatus(c *gin.Context) {
 
 	var project models.Project
 	if err := database.DB.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
 	if err := database.DB.Model(&project).Update("is_active", !project.IsActive).Error; err != nil {
-		utils.InternalServerError(c, "Failed to update project status")
+		utils.InternalServerError(c, utils.MsgProjectUpdateFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "Project status updated", nil)
+	utils.SuccessWithCode(c, utils.MsgProjectUpdated, nil)
 }

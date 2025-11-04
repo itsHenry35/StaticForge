@@ -14,13 +14,13 @@ func GetSystemStats(c *gin.Context) {
 
 	// Count total users
 	if err := database.DB.Model(&models.User{}).Count(&totalUsers).Error; err != nil {
-		utils.InternalServerError(c, "Failed to get user count")
+		utils.InternalServerError(c, utils.MsgDatabaseError)
 		return
 	}
 
 	// Count total projects
 	if err := database.DB.Model(&models.Project{}).Count(&totalProjects).Error; err != nil {
-		utils.InternalServerError(c, "Failed to get project count")
+		utils.InternalServerError(c, utils.MsgDatabaseError)
 		return
 	}
 

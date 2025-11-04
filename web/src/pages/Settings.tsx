@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Form, Switch, Button, Space, Divider, Input, Select, Popconfirm, Table, Modal, Alert, Collapse } from 'antd';
 import { SettingOutlined, DeleteOutlined, PlusOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
 import type { ConfigData, OAuthConfigFull } from '../types';
@@ -8,6 +9,7 @@ import type { ConfigData, OAuthConfigFull } from '../types';
 const { Panel } = Collapse;
 
 export const Settings: React.FC = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [oauthModalVisible, setOauthModalVisible] = useState(false);
@@ -120,24 +122,24 @@ export const Settings: React.FC = () => {
 
   const oauthColumns = [
     {
-      title: 'Name',
+      title: t('settings.name'),
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: 'Client ID',
+      title: t('settings.clientId'),
       dataIndex: 'client_id',
       key: 'client_id',
       render: (text: string) => text ? text.substring(0, 20) + '...' : '-',
     },
     {
-      title: 'Well-Known URL',
+      title: t('settings.wellKnownUrl'),
       dataIndex: 'well_known_url',
       key: 'well_known_url',
       render: (text: string) => text ? text.substring(0, 40) + '...' : '-',
     },
     {
-      title: 'Actions',
+      title: t('settings.actions'),
       key: 'actions',
       render: (_: unknown, record: OAuthConfigFull) => (
         <Space>
@@ -149,17 +151,17 @@ export const Settings: React.FC = () => {
               setOauthModalVisible(true);
             }}
           >
-            Edit
+            {t('common.edit')}
           </Button>
           <Popconfirm
-            title="Delete OAuth Provider?"
-            description="This will disable OAuth login for this provider."
+            title={t('settings.deleteOAuthProvider')}
+            description={t('settings.deleteOAuthProviderDesc')}
             onConfirm={() => handleRemoveOAuthProvider(record.name)}
-            okText="Yes"
-            cancelText="No"
+            okText={t('common.yes')}
+            cancelText={t('common.no')}
           >
             <Button size="small" danger icon={<DeleteOutlined />}>
-              Delete
+              {t('common.delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -172,22 +174,22 @@ export const Settings: React.FC = () => {
       <div className="page-header">
         <h1 className="page-header__title">
           <SettingOutlined style={{ marginRight: 12 }} />
-          System Settings
+          {t('settings.title')}
         </h1>
         <p className="page-header__subtitle">
-          Manage system configuration and OAuth providers
+          {t('settings.subtitle')}
         </p>
       </div>
 
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* General Settings */}
-        <Card title="General Settings" loading={loading}>
+        <Card title={t('settings.generalSettings')} loading={loading}>
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 500, marginBottom: 4 }}>Allow User Registration</div>
+                <div style={{ fontWeight: 500, marginBottom: 4 }}>{t('settings.allowUserRegistration')}</div>
                 <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-                  When disabled, only administrators can create new users
+                  {t('settings.allowUserRegistrationDesc')}
                 </div>
               </div>
               <Switch
@@ -200,7 +202,7 @@ export const Settings: React.FC = () => {
 
         {/* OAuth Providers */}
         <Card
-          title="OAuth Providers"
+          title={t('settings.oauthProviders')}
           loading={loading}
           extra={
             <Button
@@ -212,7 +214,7 @@ export const Settings: React.FC = () => {
                 setOauthModalVisible(true);
               }}
             >
-              Add Provider
+              {t('settings.addProvider')}
             </Button>
           }
         >
@@ -226,22 +228,22 @@ export const Settings: React.FC = () => {
           <Divider />
 
           <Collapse ghost>
-            <Panel header={<><InfoCircleOutlined style={{ marginRight: 8 }} />OAuth Configuration Guide</>} key="1">
+            <Panel header={<><InfoCircleOutlined style={{ marginRight: 8 }} />{t('settings.oauthConfigGuide')}</>} key="1">
               <Alert
-                message="OAuth Setup Instructions"
+                message={t('settings.oauthSetupInstructions')}
                 description={
                   <div>
-                    <h4>Field Mapping Configuration</h4>
-                    <p>Field mapping tells StaticForge where to find user information in the OAuth provider's response.</p>
+                    <h4>{t('settings.fieldMappingConfig')}</h4>
+                    <p>{t('settings.fieldMappingDesc')}</p>
 
-                    <h4>Common OIDC Provider Examples:</h4>
+                    <h4>{t('settings.commonOidcProviders')}</h4>
 
                     <div style={{ marginTop: 16 }}>
-                      <h5>Google:</h5>
+                      <h5>{t('settings.google')}</h5>
                       <ul>
-                        <li><strong>Well-Known URL:</strong> <code>https://accounts.google.com/.well-known/openid-configuration</code></li>
-                        <li><strong>Scopes:</strong> <code>openid, profile, email</code></li>
-                        <li><strong>Field Mapping:</strong>
+                        <li><strong>{t('settings.wellKnownUrlLabel')}</strong> <code>https://accounts.google.com/.well-known/openid-configuration</code></li>
+                        <li><strong>{t('settings.scopesLabel')}</strong> <code>openid, profile, email</code></li>
+                        <li><strong>{t('settings.fieldMappingLabel')}</strong>
                           <ul>
                             <li><code>name</code>: <code>email</code></li>
                             <li><code>email</code>: <code>email</code></li>
@@ -252,11 +254,11 @@ export const Settings: React.FC = () => {
                     </div>
 
                     <div style={{ marginTop: 16 }}>
-                      <h5>Auth0:</h5>
+                      <h5>{t('settings.auth0')}</h5>
                       <ul>
-                        <li><strong>Well-Known URL:</strong> <code>https://YOUR_DOMAIN/.well-known/openid-configuration</code></li>
-                        <li><strong>Scopes:</strong> <code>openid, profile, email</code></li>
-                        <li><strong>Field Mapping:</strong>
+                        <li><strong>{t('settings.wellKnownUrlLabel')}</strong> <code>https://YOUR_DOMAIN/.well-known/openid-configuration</code></li>
+                        <li><strong>{t('settings.scopesLabel')}</strong> <code>openid, profile, email</code></li>
+                        <li><strong>{t('settings.fieldMappingLabel')}</strong>
                           <ul>
                             <li><code>name</code>: <code>email</code></li>
                             <li><code>email</code>: <code>email</code></li>
@@ -267,11 +269,11 @@ export const Settings: React.FC = () => {
                     </div>
 
                     <div style={{ marginTop: 16 }}>
-                      <h5>Keycloak:</h5>
+                      <h5>{t('settings.keycloak')}</h5>
                       <ul>
-                        <li><strong>Well-Known URL:</strong> <code>https://YOUR_DOMAIN/realms/YOUR_REALM/.well-known/openid-configuration</code></li>
-                        <li><strong>Scopes:</strong> <code>openid, profile, email</code></li>
-                        <li><strong>Field Mapping:</strong>
+                        <li><strong>{t('settings.wellKnownUrlLabel')}</strong> <code>https://YOUR_DOMAIN/realms/YOUR_REALM/.well-known/openid-configuration</code></li>
+                        <li><strong>{t('settings.scopesLabel')}</strong> <code>openid, profile, email</code></li>
+                        <li><strong>{t('settings.fieldMappingLabel')}</strong>
                           <ul>
                             <li><code>name</code>: <code>preferred_username</code></li>
                             <li><code>email</code>: <code>email</code></li>
@@ -282,8 +284,7 @@ export const Settings: React.FC = () => {
                     </div>
 
                     <div style={{ marginTop: 16, padding: 12, background: 'var(--bg-secondary)', borderRadius: 4 }}>
-                      <strong>Note:</strong> The <code>name</code> field is required and will be used to generate the username if needed.
-                      The <code>display_name</code> field is optional and will be shown to users instead of the username if provided.
+                      {t('settings.fieldMappingNote', { nameField: 'name', displayNameField: 'display_name' })}
                     </div>
                   </div>
                 }
@@ -296,7 +297,7 @@ export const Settings: React.FC = () => {
 
         {/* String Replacements */}
         <Card
-          title="String Replacements"
+          title={t('settings.stringReplacements')}
           loading={loading}
           extra={
             <Space>
@@ -305,24 +306,24 @@ export const Settings: React.FC = () => {
                 icon={<PlusOutlined />}
                 onClick={handleAddReplacement}
               >
-                Add Rule
+                {t('settings.addRule')}
               </Button>
               <Button
                 type="primary"
                 onClick={handleSaveReplacements}
               >
-                Save Changes
+                {t('settings.saveChanges')}
               </Button>
             </Space>
           }
         >
           <Alert
-            message="String Replacement Configuration"
+            message={t('settings.stringReplacementConfig')}
             description={
               <div>
-                <p>Define string replacement rules to automatically replace text in HTML, CSS, and JS files when they are served to visitors.</p>
-                <p>For example, replace placeholder text like <code>foo</code> with <code>bar</code> across all published sites.</p>
-                <p style={{ marginTop: 8 }}><strong>Note:</strong> Replacements are applied dynamically when serving files. Original files are not modified, and changes take effect immediately.</p>
+                <p>{t('settings.replacementDesc1')}</p>
+                <p>{t('settings.replacementDesc2', { from: 'foo', to: 'bar' })}</p>
+                <p style={{ marginTop: 8 }}>{t('settings.replacementDesc3')}</p>
               </div>
             }
             type="info"
@@ -333,7 +334,7 @@ export const Settings: React.FC = () => {
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             {(config?.replacements || []).length === 0 ? (
               <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-tertiary)' }}>
-                No replacement rules configured. Click "Add Rule" to create one.
+                {t('settings.noReplacementRules')}
               </div>
             ) : (
               (config?.replacements || []).map((rule, index) => (
@@ -348,23 +349,23 @@ export const Settings: React.FC = () => {
                       icon={<DeleteOutlined />}
                       onClick={() => handleRemoveReplacement(index)}
                     >
-                      Delete
+                      {t('common.delete')}
                     </Button>
                   }
                 >
                   <Space direction="vertical" size="small" style={{ width: '100%' }}>
                     <div>
-                      <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>Find:</div>
+                      <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>{t('settings.findText')}</div>
                       <Input
-                        placeholder="Text to find (e.g., foo)"
+                        placeholder={t('settings.findTextPlaceholder')}
                         value={rule.from}
                         onChange={(e) => handleUpdateReplacement(index, 'from', e.target.value)}
                       />
                     </div>
                     <div>
-                      <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>Replace with:</div>
+                      <div style={{ marginBottom: 4, fontWeight: 500, fontSize: 13 }}>{t('settings.replaceWith')}</div>
                       <Input
-                        placeholder="Replacement text (e.g., bar)"
+                        placeholder={t('settings.replaceTextPlaceholder')}
                         value={rule.to}
                         onChange={(e) => handleUpdateReplacement(index, 'to', e.target.value)}
                       />
@@ -379,7 +380,7 @@ export const Settings: React.FC = () => {
 
       {/* Add/Edit OAuth Provider Modal */}
       <Modal
-        title={editingProvider ? "Edit OAuth Provider" : "Add OAuth Provider"}
+        title={editingProvider ? t('settings.editProvider') : t('settings.addProvider')}
         open={oauthModalVisible}
         onCancel={() => {
           setOauthModalVisible(false);
@@ -396,54 +397,54 @@ export const Settings: React.FC = () => {
         >
           <Form.Item
             name="name"
-            label="Provider Name"
-            rules={[{ required: true, message: 'Please enter provider name' }]}
+            label={t('settings.providerName')}
+            rules={[{ required: true, message: t('settings.pleaseEnterProviderName') }]}
           >
             <Input
-              placeholder="e.g., GitHub, Google, Discord"
+              placeholder={t('settings.providerNamePlaceholder')}
               disabled={!!editingProvider}
             />
           </Form.Item>
 
           <Form.Item
             name="icon"
-            label="Icon URL"
+            label={t('settings.iconUrl')}
           >
-            <Input placeholder="https://..." />
+            <Input placeholder={t('settings.iconUrlPlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name="client_id"
-            label="Client ID"
-            rules={[{ required: true, message: 'Please enter client ID' }]}
+            label={t('settings.clientId')}
+            rules={[{ required: true, message: t('settings.pleaseEnterClientId') }]}
           >
-            <Input placeholder="Your OAuth app client ID" />
+            <Input placeholder={t('settings.clientIdPlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name="client_secret"
-            label="Client Secret"
-            rules={[{ required: true, message: 'Please enter client secret' }]}
+            label={t('settings.clientSecret')}
+            rules={[{ required: true, message: t('settings.pleaseEnterClientSecret') }]}
           >
-            <Input.Password placeholder="Your OAuth app client secret" />
+            <Input.Password placeholder={t('settings.clientSecretPlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name="well_known_url"
-            label="OIDC Well-Known URL"
-            rules={[{ required: true, message: 'Please enter OIDC well-known URL' }]}
-            extra="The OIDC discovery endpoint (e.g., https://accounts.google.com/.well-known/openid-configuration)"
+            label={t('settings.wellKnownUrl')}
+            rules={[{ required: true, message: t('settings.pleaseEnterWellKnownUrl') }]}
+            extra={t('settings.wellKnownUrlExtra')}
           >
-            <Input placeholder="https://.../.well-known/openid-configuration" />
+            <Input placeholder={t('settings.wellKnownUrlPlaceholder')} />
           </Form.Item>
 
           <Alert
-            message="Redirect URL"
+            message={t('settings.redirectUrl')}
             description={
               <div>
-                The OAuth callback URL will be automatically set to: <code>{window.location.origin}/api/auth/oauth/callback</code>
+                {t('settings.redirectUrlDesc', { url: `${window.location.origin}/api/auth/oauth/callback` })}
                 <br />
-                Please configure this URL in your OAuth provider settings.
+                {t('settings.redirectUrlNote')}
               </div>
             }
             type="info"
@@ -452,51 +453,51 @@ export const Settings: React.FC = () => {
 
           <Form.Item
             name="scopes"
-            label="Scopes"
+            label={t('settings.scopes')}
           >
             <Select
               mode="tags"
-              placeholder="Enter scopes (press Enter to add)"
+              placeholder={t('settings.scopesPlaceholder')}
             />
           </Form.Item>
 
-          <Divider>Field Mapping</Divider>
+          <Divider>{t('settings.fieldMapping')}</Divider>
 
           <Form.Item
             name={['field_mapping', 'name']}
-            label="Name Field"
-            rules={[{ required: true, message: 'Please enter name field mapping' }]}
-            extra="The field in OAuth response containing the user's name/username (required)"
+            label={t('settings.nameField')}
+            rules={[{ required: true, message: t('settings.pleaseEnterNameField') }]}
+            extra={t('settings.nameFieldExtra')}
           >
-            <Input placeholder="e.g., login, username, email" />
+            <Input placeholder={t('settings.nameFieldPlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name={['field_mapping', 'email']}
-            label="Email Field"
-            extra="The field in OAuth response containing the user's email"
+            label={t('settings.emailField')}
+            extra={t('settings.emailFieldExtra')}
           >
-            <Input placeholder="e.g., email" />
+            <Input placeholder={t('settings.emailFieldPlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name={['field_mapping', 'display_name']}
-            label="Display Name Field"
-            extra="The field in OAuth response containing the user's display name (optional)"
+            label={t('settings.displayNameField')}
+            extra={t('settings.displayNameFieldExtra')}
           >
-            <Input placeholder="e.g., name, global_name, display_name" />
+            <Input placeholder={t('settings.displayNameFieldPlaceholder')} />
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0 }}>
             <Space>
               <Button type="primary" htmlType="submit">
-                Add Provider
+                {t('settings.addProvider')}
               </Button>
               <Button onClick={() => {
                 setOauthModalVisible(false);
                 oauthForm.resetFields();
               }}>
-                Cancel
+                {t('common.cancel')}
               </Button>
             </Space>
           </Form.Item>

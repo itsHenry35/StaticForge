@@ -22,7 +22,7 @@ func UploadFile(c *gin.Context) {
 	// Get file from form
 	file, err := c.FormFile("file")
 	if err != nil {
-		utils.BadRequest(c, "No file uploaded")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -35,7 +35,7 @@ func UploadFile(c *gin.Context) {
 	// Validate file size
 	cfg := config.GetConfig()
 	if file.Size > cfg.Upload.MaxSize {
-		utils.BadRequest(c, "File size exceeds maximum allowed size")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -48,7 +48,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -63,26 +63,26 @@ func UploadFile(c *gin.Context) {
 
 	// Check if file already exists
 	if _, err := os.Stat(fullPath); err == nil {
-		utils.BadRequest(c, "File already exists")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	// Ensure parent directory exists
 	parentDir := filepath.Dir(fullPath)
 	if err := utils.EnsureDir(parentDir); err != nil {
-		utils.InternalServerError(c, "Failed to create parent directory")
+		utils.InternalServerError(c, utils.MsgFileUploadFailed)
 		return
 	}
 
 	if err := utils.SaveUploadedFile(file, fullPath); err != nil {
-		utils.InternalServerError(c, "Failed to save file")
+		utils.InternalServerError(c, utils.MsgFileUploadFailed)
 		return
 	}
 
 	// Get file info
 	fileInfo, _ := os.Stat(fullPath)
 
-	utils.Success(c, map[string]interface{}{
+	utils.SuccessWithCode(c, utils.MsgFileUploaded, map[string]interface{}{
 		"path":       relativePath,
 		"name":       filename,
 		"size":       file.Size,
@@ -100,7 +100,7 @@ func CreateFolder(c *gin.Context) {
 
 	var req types.CreateFolderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -116,7 +116,7 @@ func CreateFolder(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 
@@ -131,19 +131,19 @@ func CreateFolder(c *gin.Context) {
 
 	// Check if folder already exists
 	if _, err := os.Stat(fullPath); err == nil {
-		utils.BadRequest(c, "A file or folder with this name already exists")
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	if err := utils.EnsureDir(fullPath); err != nil {
-		utils.InternalServerError(c, "Failed to create folder")
+		utils.InternalServerError(c, utils.MsgDirectoryCreationFailed)
 		return
 	}
 
 	// Get folder info
 	folderInfo, _ := os.Stat(fullPath)
 
-	utils.Success(c, map[string]interface{}{
+	utils.SuccessWithCode(c, utils.MsgDirectoryCreated, map[string]interface{}{
 		"path":       folderPath,
 		"name":       folderName,
 		"size":       int64(0),

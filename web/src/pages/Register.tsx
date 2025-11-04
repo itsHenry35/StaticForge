@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, message } from 'antd';
+import { Form, Input, Button, Card } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { apiService } from '../services/api';
+import { handleRespWithNotifySuccess } from '../utils/handleResp';
 
 export const Register: React.FC = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const { register, user } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,16 +22,16 @@ export const Register: React.FC = () => {
 
   const onFinish = async (values: { username: string; display_name?: string; email: string; password: string }) => {
     setLoading(true);
-    try {
-      await register(values);
-      message.success('Registration successful!');
+    const resp = await apiService.register(values);
+    handleRespWithNotifySuccess(resp, (data) => {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
       navigate('/dashboard');
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      message.error(err.response?.data?.message || 'Registration failed');
-    } finally {
+    }, () => {
       setLoading(false);
-    }
+    });
+    setLoading(false);
   };
 
   return (
@@ -36,8 +41,12 @@ export const Register: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'var(--bg-secondary)',
-      padding: 16
+      padding: 16,
+      position: 'relative'
     }}>
+      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+        <LanguageSwitcher />
+      </div>
       <Card style={{ width: '100%', maxWidth: 420, boxShadow: 'var(--shadow-lg)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
@@ -57,83 +66,83 @@ export const Register: React.FC = () => {
             SF
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
-            Create your account
+            {t('auth.createAccount')}
           </h1>
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Get started with StaticForge</p>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{t('auth.getStarted')}</p>
         </div>
 
         <Form name="register" onFinish={onFinish} layout="vertical">
           <Form.Item
             name="username"
-            label="Username"
+            label={t('auth.username')}
             rules={[
-              { required: true, message: 'Please enter a username' },
-              { min: 3, message: 'Username must be at least 3 characters' },
-              { max: 50, message: 'Username must be at most 50 characters' },
+              { required: true, message: t('validation.pleaseEnterUsername') },
+              { min: 3, message: t('validation.usernameMinLength') },
+              { max: 50, message: t('validation.usernameMaxLength') },
             ]}
           >
-            <Input prefix={<UserOutlined />} placeholder="Enter username" />
+            <Input prefix={<UserOutlined />} placeholder={t('auth.enterUsername')} />
           </Form.Item>
 
           <Form.Item
             name="display_name"
-            label="Display Name"
+            label={t('auth.displayName')}
           >
-            <Input prefix={<IdcardOutlined />} placeholder="Enter display name (optional)" />
+            <Input prefix={<IdcardOutlined />} placeholder={t('auth.enterDisplayName')} />
           </Form.Item>
 
           <Form.Item
             name="email"
-            label="Email"
+            label={t('auth.email')}
             rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' },
+              { required: true, message: t('validation.pleaseEnterEmail') },
+              { type: 'email', message: t('validation.pleaseEnterValidEmail') },
             ]}
           >
-            <Input prefix={<MailOutlined />} placeholder="Enter email" />
+            <Input prefix={<MailOutlined />} placeholder={t('auth.enterEmail')} />
           </Form.Item>
 
           <Form.Item
             name="password"
-            label="Password"
+            label={t('auth.password')}
             rules={[
-              { required: true, message: 'Please enter a password' },
-              { min: 6, message: 'Password must be at least 6 characters' },
+              { required: true, message: t('validation.pleaseEnterPassword') },
+              { min: 6, message: t('validation.passwordMinLength') },
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="Enter password" />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('auth.enterPassword')} />
           </Form.Item>
 
           <Form.Item
             name="confirmPassword"
-            label="Confirm Password"
+            label={t('auth.confirmPassword')}
             dependencies={['password']}
             rules={[
-              { required: true, message: 'Please confirm your password' },
+              { required: true, message: t('validation.pleaseConfirmPassword') },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('password') === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('Passwords do not match'));
+                  return Promise.reject(new Error(t('validation.passwordsNotMatch')));
                 },
               }),
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="Confirm password" />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('auth.confirmPasswordPlaceholder')} />
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 16 }}>
             <Button type="primary" htmlType="submit" loading={loading} block>
-              Sign Up
+              {t('auth.signUp')}
             </Button>
           </Form.Item>
         </Form>
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Already have an account? </span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 14 }}>{t('auth.alreadyHaveAccount')}</span>
           <Link to="/login" style={{ color: 'var(--primary-color)', fontWeight: 500, fontSize: 14 }}>
-            Sign in
+            {t('auth.signIn2')}
           </Link>
         </div>
       </Card>

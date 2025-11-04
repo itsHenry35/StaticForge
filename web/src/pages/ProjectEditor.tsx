@@ -32,6 +32,7 @@ import {
   FileOutlined,
   FileAddOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import Editor from '@monaco-editor/react';
 import { apiService } from '../services/api';
 import type { Project, File as FileType, Analytics } from '../types';
@@ -42,6 +43,7 @@ const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
 
 export const ProjectEditor: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
@@ -69,7 +71,7 @@ export const ProjectEditor: React.FC = () => {
   const [fileForm] = Form.useForm();
   const [renameForm] = Form.useForm();
   const [publishForm] = Form.useForm();
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   const projectId = parseInt(id || '0');
@@ -220,7 +222,7 @@ export const ProjectEditor: React.FC = () => {
       });
     } else {
       // Multiple files upload
-      message.loading({ content: `Uploading ${files.length} files...`, key: 'filesDrop', duration: 0 });
+      message.loading({ content: t('common.uploading', { count: files.length }), key: 'filesDrop', duration: 0 });
 
       let successCount = 0;
       let errorCount = 0;
@@ -241,9 +243,9 @@ export const ProjectEditor: React.FC = () => {
       message.destroy('filesDrop');
 
       if (errorCount === 0) {
-        message.success(`Successfully uploaded ${successCount} files`);
+        message.success(t('editor.uploadedFilesSuccess', { count: successCount }));
       } else {
-        message.warning(`Uploaded ${successCount} files, ${errorCount} failed`);
+        message.warning(t('editor.uploadedFilesMixed', { success: successCount, error: errorCount }));
       }
 
       fetchProject();
@@ -258,7 +260,7 @@ export const ProjectEditor: React.FC = () => {
     setUploadingFolder(true);
     const uploadPath = getTargetPath();
 
-    message.loading({ content: `Uploading ${files.length} files...`, key: 'folderUpload', duration: 0 });
+    message.loading({ content: t('common.uploading', { count: files.length }), key: 'folderUpload', duration: 0 });
 
     let successCount = 0;
     let errorCount = 0;
@@ -288,9 +290,9 @@ export const ProjectEditor: React.FC = () => {
     message.destroy('folderUpload');
 
     if (errorCount === 0) {
-      message.success(`Successfully uploaded ${successCount} files`);
+      message.success(t('editor.uploadedFilesSuccess', { count: successCount }));
     } else {
-      message.warning(`Uploaded ${successCount} files, ${errorCount} failed`);
+      message.warning(t('editor.uploadedFilesMixed', { success: successCount, error: errorCount }));
     }
 
     fetchProject();
@@ -409,7 +411,7 @@ export const ProjectEditor: React.FC = () => {
 
     // Prevent dropping index.html
     if (dragFile.path === 'index.html' || dragFile.path === '/index.html') {
-      message.error('Cannot move index.html');
+      message.error(t('editor.cannotMoveIndex'));
       return;
     }
 
@@ -442,7 +444,7 @@ export const ProjectEditor: React.FC = () => {
     // Check if target path already exists
     const existingFile = files.find(f => f.path === newPath);
     if (existingFile) {
-      message.error('A file with this name already exists in the target location');
+      message.error(t('editor.fileExistsInTarget'));
       return;
     }
 
@@ -466,7 +468,7 @@ export const ProjectEditor: React.FC = () => {
 
   const handleDelete = async (file: FileType) => {
     if (file.path === 'index.html') {
-      message.error('Cannot delete index.html');
+      message.error(t('editor.cannotDeleteIndex'));
       return;
     }
 
@@ -516,11 +518,11 @@ export const ProjectEditor: React.FC = () => {
         const iframeCode = `<iframe src="${protocol}//${host}/s/${project.name}" width="100%" height="600" frameborder="0"></iframe>`;
 
         Modal.success({
-          title: 'Project Published Successfully!',
+          title: t('editor.projectPublishedSuccess'),
           width: 600,
           content: (
             <div>
-              <p style={{ marginBottom: 16 }}>Your site is now live! You can embed it using the following iframe code:</p>
+              <p style={{ marginBottom: 16 }}>{t('editor.siteNowLive')}</p>
               <Input.TextArea
                 value={iframeCode}
                 readOnly
@@ -529,11 +531,11 @@ export const ProjectEditor: React.FC = () => {
                 onClick={(e) => {
                   e.currentTarget.select();
                   navigator.clipboard.writeText(iframeCode);
-                  message.success('Iframe code copied to clipboard!');
+                  message.success(t('editor.iframeCopied'));
                 }}
               />
               <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
-                Click the code above to copy to clipboard
+                {t('editor.clickToCopy')}
               </p>
             </div>
           ),
@@ -571,7 +573,7 @@ export const ProjectEditor: React.FC = () => {
       <Header className="editor-header">
         <Space size={16}>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/projects')} type="text">
-            Back
+            {t('editor.back')}
           </Button>
           <div style={{ width: 1, height: 24, background: 'var(--border-color)' }} />
           <h1 className="editor-header__title">
@@ -579,14 +581,14 @@ export const ProjectEditor: React.FC = () => {
           </h1>
         </Space>
         <Space size={12}>
-          {saving && <span className="saving-indicator">Saving...</span>}
+          {saving && <span className="saving-indicator">{t('editor.saving')}</span>}
           <Button
             icon={<SaveOutlined />}
             onClick={handleSave}
             disabled={!selectedFile}
             type="text"
           >
-            Save
+            {t('editor.save')}
           </Button>
           <Button
             icon={<BarChartOutlined />}
@@ -596,20 +598,20 @@ export const ProjectEditor: React.FC = () => {
             }}
             type="text"
           >
-            Analytics
+            {t('editor.analytics')}
           </Button>
           <Button
             icon={<SettingOutlined />}
             onClick={() => setSettingsVisible(true)}
             type="text"
           >
-            Settings
+            {t('editor.settings')}
           </Button>
           <Button
             type={project?.is_published ? 'default' : 'primary'}
             onClick={handleTogglePublish}
           >
-            {project?.is_published ? 'Unpublish' : 'Publish'}
+            {project?.is_published ? t('editor.unpublish') : t('editor.publish')}
           </Button>
           {project?.is_published && (
             <Button
@@ -618,7 +620,7 @@ export const ProjectEditor: React.FC = () => {
               href={`/s/${project.name}`}
               target="_blank"
             >
-              Preview
+              {t('editor.preview')}
             </Button>
           )}
         </Space>
@@ -631,7 +633,7 @@ export const ProjectEditor: React.FC = () => {
               <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                 <Upload beforeUpload={handleUpload} showUploadList={false} style={{ flex: 1 }}>
                   <Button icon={<UploadOutlined />} style={{ width: '100%' }}>
-                    File
+                    {t('editor.file')}
                   </Button>
                 </Upload>
                 <Button
@@ -640,7 +642,7 @@ export const ProjectEditor: React.FC = () => {
                   loading={uploadingFolder}
                   style={{ flex: 1 }}
                 >
-                  Folder
+                  {t('editor.folder')}
                 </Button>
               </div>
               <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
@@ -651,7 +653,7 @@ export const ProjectEditor: React.FC = () => {
                   }}
                   style={{ flex: 1 }}
                 >
-                  New File
+                  {t('editor.newFile')}
                 </Button>
                 <Button
                   icon={<FolderAddOutlined />}
@@ -660,7 +662,7 @@ export const ProjectEditor: React.FC = () => {
                   }}
                   style={{ flex: 1 }}
                 >
-                  New Folder
+                  {t('editor.newFolder')}
                 </Button>
               </div>
             </Space>
@@ -673,6 +675,7 @@ export const ProjectEditor: React.FC = () => {
               multiple
               style={{ display: 'none' }}
               onChange={handleFolderUpload}
+              aria-label={t('editor.uploadFolder')}
             />
           </div>
 
@@ -714,7 +717,7 @@ export const ProjectEditor: React.FC = () => {
                       style={{ width: 20, height: 20, padding: 0, minWidth: 20 }}
                     />
                     <Popconfirm
-                      title="Delete file?"
+                      title={t('editor.deleteFileConfirm')}
                       onConfirm={(e) => {
                         e?.stopPropagation();
                         handleDelete(file);
@@ -781,7 +784,7 @@ export const ProjectEditor: React.FC = () => {
             <div className="editor-empty">
               <div style={{ textAlign: 'center' }}>
                 <FileOutlined className="editor-empty__icon" />
-                <p className="editor-empty__text">Select a file to start editing</p>
+                <p className="editor-empty__text">{t('editor.selectFileToEdit')}</p>
               </div>
             </div>
           )}
@@ -806,21 +809,21 @@ export const ProjectEditor: React.FC = () => {
                 ? {
                     key: 'newFolder',
                     icon: <PlusOutlined />,
-                    label: 'New Folder Here',
+                    label: t('editor.newFolderHere'),
                   }
                 : null,
               contextMenuNode?.name !== 'index.html' && contextMenuNode?.path !== 'index.html'
                 ? {
                     key: 'rename',
                     icon: <EditOutlined />,
-                    label: 'Rename',
+                    label: t('editor.rename'),
                   }
                 : null,
               contextMenuNode?.name !== 'index.html' && contextMenuNode?.path !== 'index.html'
                 ? {
                     key: 'delete',
                     icon: <DeleteOutlined />,
-                    label: 'Delete',
+                    label: t('editor.delete'),
                     danger: true,
                   }
                 : null,
@@ -831,7 +834,7 @@ export const ProjectEditor: React.FC = () => {
 
       {/* Settings Drawer */}
       <Drawer
-        title="Project Settings"
+        title={t('editor.projectSettings')}
         placement="right"
         onClose={() => setSettingsVisible(false)}
         open={settingsVisible}
@@ -840,22 +843,22 @@ export const ProjectEditor: React.FC = () => {
         <Form form={settingsForm} layout="vertical" onFinish={handleUpdateSettings}>
           <Form.Item
             name="display_name"
-            label="Display Name"
+            label={t('editor.displayName')}
           >
             <Input />
           </Form.Item>
 
           <Form.Item
             name="description"
-            label="Description"
+            label={t('editor.description')}
           >
             <Input.TextArea rows={3} />
           </Form.Item>
 
           <Form.Item>
             <Space className="w-full justify-end">
-              <Button onClick={() => setSettingsVisible(false)}>Cancel</Button>
-              <Button type="primary" htmlType="submit">Save Changes</Button>
+              <Button onClick={() => setSettingsVisible(false)}>{t('editor.cancel')}</Button>
+              <Button type="primary" htmlType="submit">{t('editor.saveChanges')}</Button>
             </Space>
           </Form.Item>
         </Form>
@@ -863,7 +866,7 @@ export const ProjectEditor: React.FC = () => {
 
       {/* Analytics Drawer */}
       <Drawer
-        title="Analytics"
+        title={t('editor.analytics')}
         placement="right"
         onClose={() => setAnalyticsVisible(false)}
         open={analyticsVisible}
@@ -875,7 +878,7 @@ export const ProjectEditor: React.FC = () => {
               <Col span={12}>
                 <Card>
                   <Statistic
-                    title="Total Page Views"
+                    title={t('editor.totalPageViews')}
                     value={analytics.total_pv}
                     prefix={<EyeOutlined />}
                   />
@@ -884,7 +887,7 @@ export const ProjectEditor: React.FC = () => {
               <Col span={12}>
                 <Card>
                   <Statistic
-                    title="Total Unique Visitors"
+                    title={t('editor.totalUniqueVisitors')}
                     value={analytics.total_uv}
                     prefix={<EyeOutlined />}
                   />
@@ -895,7 +898,7 @@ export const ProjectEditor: React.FC = () => {
               <Col span={12}>
                 <Card>
                   <Statistic
-                    title="Today's Page Views"
+                    title={t('editor.todayPageViews')}
                     value={analytics.today_pv}
                   />
                 </Card>
@@ -903,7 +906,7 @@ export const ProjectEditor: React.FC = () => {
               <Col span={12}>
                 <Card>
                   <Statistic
-                    title="Today's Unique Visitors"
+                    title={t('editor.todayUniqueVisitors')}
                     value={analytics.today_uv}
                   />
                 </Card>
@@ -911,14 +914,14 @@ export const ProjectEditor: React.FC = () => {
             </Row>
 
             {analytics.trend_data && analytics.trend_data.length > 0 && (
-              <Card title="Trend Data">
+              <Card title={t('editor.trendData')}>
                 <div className="space-y-2">
                   {analytics.trend_data.map((trend) => (
                     <div key={trend.date} className="flex justify-between border-b pb-2">
                       <Text>{trend.date}</Text>
                       <Space>
-                        <Text type="secondary">PV: {trend.pv}</Text>
-                        <Text type="secondary">UV: {trend.uv}</Text>
+                        <Text type="secondary">{t('editor.pvLabel', { value: trend.pv })}</Text>
+                        <Text type="secondary">{t('editor.uvLabel', { value: trend.uv })}</Text>
                       </Space>
                     </div>
                   ))}
@@ -931,7 +934,7 @@ export const ProjectEditor: React.FC = () => {
 
       {/* Create File Modal */}
       <Modal
-        title="Create New File"
+        title={t('editor.createNewFile')}
         open={fileModalVisible}
         onCancel={() => {
           setFileModalVisible(false);
@@ -942,10 +945,10 @@ export const ProjectEditor: React.FC = () => {
         <Form form={fileForm} onFinish={handleCreateFile} layout="vertical">
           <Form.Item
             name="name"
-            label="File Name"
-            rules={[{ required: true, message: 'Please enter file name' }]}
+            label={t('editor.fileName')}
+            rules={[{ required: true, message: t('validation.pleaseEnterFileName') }]}
           >
-            <Input placeholder="e.g., styles.css, script.js" />
+            <Input placeholder={t('editor.fileNamePlaceholder')} />
           </Form.Item>
           <Form.Item className="mb-0">
             <Space className="w-full justify-end">
@@ -953,10 +956,10 @@ export const ProjectEditor: React.FC = () => {
                 setFileModalVisible(false);
                 fileForm.resetFields();
               }}>
-                Cancel
+                {t('editor.cancel')}
               </Button>
               <Button type="primary" htmlType="submit">
-                Create
+                {t('editor.create')}
               </Button>
             </Space>
           </Form.Item>
@@ -965,7 +968,7 @@ export const ProjectEditor: React.FC = () => {
 
       {/* Create Folder Modal */}
       <Modal
-        title="Create Folder"
+        title={t('editor.createFolder')}
         open={folderModalVisible}
         onCancel={() => {
           setFolderModalVisible(false);
@@ -976,8 +979,8 @@ export const ProjectEditor: React.FC = () => {
         <Form form={folderForm} onFinish={handleCreateFolder} layout="vertical">
           <Form.Item
             name="name"
-            label="Folder Name"
-            rules={[{ required: true, message: 'Please enter folder name' }]}
+            label={t('editor.folderName')}
+            rules={[{ required: true, message: t('validation.pleaseEnterFolderName') }]}
           >
             <Input />
           </Form.Item>
@@ -987,10 +990,10 @@ export const ProjectEditor: React.FC = () => {
                 setFolderModalVisible(false);
                 folderForm.resetFields();
               }}>
-                Cancel
+                {t('editor.cancel')}
               </Button>
               <Button type="primary" htmlType="submit">
-                Create
+                {t('editor.create')}
               </Button>
             </Space>
           </Form.Item>
@@ -999,7 +1002,7 @@ export const ProjectEditor: React.FC = () => {
 
       {/* Rename Modal */}
       <Modal
-        title="Rename File"
+        title={t('editor.renameFile')}
         open={renameModalVisible}
         onCancel={() => {
           setRenameModalVisible(false);
@@ -1010,8 +1013,8 @@ export const ProjectEditor: React.FC = () => {
         <Form form={renameForm} onFinish={handleRename} layout="vertical">
           <Form.Item
             name="new_name"
-            label="New Name"
-            rules={[{ required: true, message: 'Please enter new name' }]}
+            label={t('editor.newName')}
+            rules={[{ required: true, message: t('validation.pleaseEnterNewName') }]}
           >
             <Input />
           </Form.Item>
@@ -1021,10 +1024,10 @@ export const ProjectEditor: React.FC = () => {
                 setRenameModalVisible(false);
                 renameForm.resetFields();
               }}>
-                Cancel
+                {t('editor.cancel')}
               </Button>
               <Button type="primary" htmlType="submit">
-                Rename
+                {t('editor.rename')}
               </Button>
             </Space>
           </Form.Item>
@@ -1033,7 +1036,7 @@ export const ProjectEditor: React.FC = () => {
 
       {/* Publish Modal */}
       <Modal
-        title="Publish Project"
+        title={t('editor.publishProject')}
         open={publishModalVisible}
         onCancel={() => {
           setPublishModalVisible(false);
@@ -1044,10 +1047,10 @@ export const ProjectEditor: React.FC = () => {
         <Form form={publishForm} onFinish={handlePublish} layout="vertical">
           <Form.Item
             name="password"
-            label="Access Password (Optional)"
-            extra="Leave empty to make the site publicly accessible"
+            label={t('editor.accessPassword')}
+            extra={t('editor.passwordHelper')}
           >
-            <Input.Password placeholder="Enter password to protect your site" />
+            <Input.Password placeholder={t('editor.passwordPlaceholder')} />
           </Form.Item>
           <Form.Item className="mb-0">
             <Space className="w-full justify-end">
@@ -1055,10 +1058,10 @@ export const ProjectEditor: React.FC = () => {
                 setPublishModalVisible(false);
                 publishForm.resetFields();
               }}>
-                Cancel
+                {t('editor.cancel')}
               </Button>
               <Button type="primary" htmlType="submit">
-                Publish
+                {t('editor.publish')}
               </Button>
             </Space>
           </Form.Item>

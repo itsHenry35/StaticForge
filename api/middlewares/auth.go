@@ -14,7 +14,7 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			utils.Unauthorized(c, "Authorization header required")
+			utils.Unauthorized(c, utils.MsgUnauthorized)
 			c.Abort()
 			return
 		}
@@ -22,7 +22,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Extract token from "Bearer <token>"
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			utils.Unauthorized(c, "Invalid authorization header format")
+			utils.Unauthorized(c, utils.MsgUnauthorized)
 			c.Abort()
 			return
 		}
@@ -30,7 +30,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		token := parts[1]
 		claims, err := utils.ParseToken(token)
 		if err != nil {
-			utils.Unauthorized(c, "Invalid or expired token")
+			utils.Unauthorized(c, utils.MsgInvalidToken)
 			c.Abort()
 			return
 		}
@@ -38,13 +38,13 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Check if user exists and is active
 		var user models.User
 		if err := database.DB.First(&user, claims.UserID).Error; err != nil {
-			utils.Unauthorized(c, "User not found")
+			utils.Unauthorized(c, utils.MsgUserNotFound)
 			c.Abort()
 			return
 		}
 
 		if !user.IsActive {
-			utils.Forbidden(c, "User account is disabled")
+			utils.Forbidden(c, utils.MsgAccountDisabled)
 			c.Abort()
 			return
 		}
@@ -64,7 +64,7 @@ func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		isAdmin, exists := c.Get("is_admin")
 		if !exists || !isAdmin.(bool) {
-			utils.Forbidden(c, "Admin access required")
+			utils.Forbidden(c, utils.MsgAdminRequired)
 			c.Abort()
 			return
 		}

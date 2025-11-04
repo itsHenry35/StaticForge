@@ -52,7 +52,7 @@ func GetConfig(c *gin.Context) {
 func UpdateConfig(c *gin.Context) {
 	var req types.UpdateConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -86,15 +86,15 @@ func UpdateConfig(c *gin.Context) {
 
 	// Discover OIDC endpoints for new providers
 	if err := cfg.InitializeOAuth(); err != nil {
-		utils.InternalServerError(c, "Failed to discover OIDC endpoints: "+err.Error())
+		utils.InternalServerError(c, utils.MsgConfigUpdateFailed)
 		return
 	}
 
 	// Save config to file
 	if err := cfg.SaveConfig("config.json"); err != nil {
-		utils.InternalServerError(c, "Failed to save configuration")
+		utils.InternalServerError(c, utils.MsgConfigUpdateFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "Configuration updated successfully", nil)
+	utils.SuccessWithCode(c, utils.MsgConfigUpdated, nil)
 }

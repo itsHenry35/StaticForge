@@ -6,6 +6,7 @@
 import React from 'react';
 import { Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 interface LoadingSpinnerProps {
   tip?: string;
@@ -14,10 +15,12 @@ interface LoadingSpinnerProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  tip = 'Loading...',
+  tip,
   fullScreen = true,
   size = 'large',
 }) => {
+  const { t } = useTranslation();
+  const displayTip = tip || t('common.loading');
   const antIcon = <LoadingOutlined style={{ fontSize: size === 'large' ? 48 : 24 }} spin />;
 
   if (fullScreen) {
@@ -41,7 +44,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
             fontWeight: 500,
           }}
         >
-          {tip}
+          {displayTip}
         </p>
       </div>
     );
@@ -56,7 +59,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         padding: '40px 0',
       }}
     >
-      <Spin indicator={antIcon} size={size} tip={tip} />
+      <Spin indicator={antIcon} size={size} tip={displayTip} />
     </div>
   );
 };

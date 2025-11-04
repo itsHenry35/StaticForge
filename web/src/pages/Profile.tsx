@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Card, Form, Input, Button, Avatar, Tabs, Divider } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined, SafetyOutlined, IdcardOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import { handleRespWithNotifySuccess } from '../utils/handleResp';
 
 export const Profile: React.FC = () => {
+  const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [profileForm] = Form.useForm();
@@ -47,17 +49,17 @@ export const Profile: React.FC = () => {
       label: (
         <span style={{ fontSize: 15, fontWeight: 500 }}>
           <IdcardOutlined style={{ marginRight: 8 }} />
-          Profile Information
+          {t('profile.profileInfo')}
         </span>
       ),
       children: (
         <div style={{ padding: '32px 24px' }}>
           <div style={{ marginBottom: 24 }}>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
-              Personal Details
+              {t('profile.personalDetails')}
             </h3>
             <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: 0 }}>
-              Update your personal information and email address
+              {t('profile.personalDetailsDescription')}
             </p>
           </div>
 
@@ -70,7 +72,7 @@ export const Profile: React.FC = () => {
               email: user?.email,
             }}
           >
-            <Form.Item label="Username">
+            <Form.Item label={t('profile.username')}>
               <Input
                 value={user?.username}
                 disabled
@@ -86,28 +88,28 @@ export const Profile: React.FC = () => {
 
             <Form.Item
               name="display_name"
-              label="Display Name"
+              label={t('profile.displayName')}
             >
               <Input
                 prefix={<IdcardOutlined />}
                 size="large"
-                placeholder="Enter your display name"
+                placeholder={t('profile.displayNamePlaceholder')}
                 style={{ borderRadius: 'var(--radius-lg)' }}
               />
             </Form.Item>
 
             <Form.Item
               name="email"
-              label="Email Address"
+              label={t('profile.emailAddress')}
               rules={[
-                { required: true, message: 'Please enter your email' },
-                { type: 'email', message: 'Please enter a valid email' },
+                { required: true, message: t('validation.pleaseEnterEmail') },
+                { type: 'email', message: t('validation.pleaseEnterValidEmail') },
               ]}
             >
               <Input
                 prefix={<MailOutlined />}
                 size="large"
-                placeholder="your.email@example.com"
+                placeholder={t('profile.emailPlaceholder')}
                 style={{ borderRadius: 'var(--radius-lg)' }}
               />
             </Form.Item>
@@ -125,7 +127,7 @@ export const Profile: React.FC = () => {
                   minWidth: 140
                 }}
               >
-                Save Changes
+                {t('profile.saveChanges')}
               </Button>
             </Form.Item>
           </Form>
@@ -137,17 +139,17 @@ export const Profile: React.FC = () => {
       label: (
         <span style={{ fontSize: 15, fontWeight: 500 }}>
           <SafetyOutlined style={{ marginRight: 8 }} />
-          Security
+          {t('profile.security')}
         </span>
       ),
       children: (
         <div style={{ padding: '32px 24px' }}>
           <div style={{ marginBottom: 24 }}>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
-              Change Password
+              {t('profile.changePassword')}
             </h3>
             <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: 0 }}>
-              Update your password to keep your account secure
+              {t('profile.changePasswordDescription')}
             </p>
           </div>
 
@@ -158,12 +160,12 @@ export const Profile: React.FC = () => {
           >
             <Form.Item
               name="old_password"
-              label="Current Password"
-              rules={[{ required: true, message: 'Please enter your current password' }]}
+              label={t('profile.currentPassword')}
+              rules={[{ required: true, message: t('validation.pleaseEnterCurrentPassword') }]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Enter current password"
+                placeholder={t('profile.currentPasswordPlaceholder')}
                 size="large"
                 style={{ borderRadius: 'var(--radius-lg)' }}
               />
@@ -171,15 +173,15 @@ export const Profile: React.FC = () => {
 
             <Form.Item
               name="new_password"
-              label="New Password"
+              label={t('profile.newPassword')}
               rules={[
-                { required: true, message: 'Please enter your new password' },
-                { min: 6, message: 'Password must be at least 6 characters' },
+                { required: true, message: t('validation.pleaseEnterNewPassword') },
+                { min: 6, message: t('validation.passwordMinLength') },
               ]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Enter new password"
+                placeholder={t('profile.newPasswordPlaceholder')}
                 size="large"
                 style={{ borderRadius: 'var(--radius-lg)' }}
               />
@@ -187,23 +189,23 @@ export const Profile: React.FC = () => {
 
             <Form.Item
               name="confirm_password"
-              label="Confirm New Password"
+              label={t('profile.confirmNewPassword')}
               dependencies={['new_password']}
               rules={[
-                { required: true, message: 'Please confirm your new password' },
+                { required: true, message: t('validation.pleaseConfirmPassword') },
                 ({ getFieldValue }) => ({
                   validator(_, value) {
                     if (!value || getFieldValue('new_password') === value) {
                       return Promise.resolve();
                     }
-                    return Promise.reject(new Error('Passwords do not match'));
+                    return Promise.reject(new Error(t('validation.passwordsNotMatch')));
                   },
                 }),
               ]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Confirm new password"
+                placeholder={t('profile.confirmPasswordPlaceholder')}
                 size="large"
                 style={{ borderRadius: 'var(--radius-lg)' }}
               />
@@ -222,7 +224,7 @@ export const Profile: React.FC = () => {
                   minWidth: 140
                 }}
               >
-                Update Password
+                {t('profile.updatePassword')}
               </Button>
             </Form.Item>
           </Form>
@@ -234,8 +236,8 @@ export const Profile: React.FC = () => {
   return (
     <>
       <div className="page-header" style={{ marginBottom: 32 }}>
-        <h1 className="page-header__title">My Profile</h1>
-        <p className="page-header__subtitle">Manage your account settings and security preferences</p>
+        <h1 className="page-header__title">{t('profile.title')}</h1>
+        <p className="page-header__subtitle">{t('profile.subtitle')}</p>
       </div>
 
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -300,7 +302,7 @@ export const Profile: React.FC = () => {
                   : '0 2px 8px rgba(82, 196, 26, 0.3)',
               }}
             >
-              {user?.is_admin ? 'Administrator' : 'User'}
+              {user?.is_admin ? t('profile.administrator') : t('profile.user')}
             </div>
 
             <Divider style={{ margin: '24px 0' }} />
@@ -327,7 +329,7 @@ export const Profile: React.FC = () => {
                 }}
               >
                 <MailOutlined style={{ marginRight: 6 }} />
-                Email Address
+                {t('profile.emailAddress')}
               </div>
               <div
                 style={{

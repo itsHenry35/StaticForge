@@ -12,11 +12,20 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// Success sends a successful response
+// Success sends a successful response with default success message
 func Success(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, Response{
 		Code:    200,
-		Message: "success",
+		Message: MsgSuccess,
+		Data:    data,
+	})
+}
+
+// SuccessWithCode sends a successful response with a specific message code
+func SuccessWithCode(c *gin.Context, messageCode string, data interface{}) {
+	c.JSON(http.StatusOK, Response{
+		Code:    200,
+		Message: messageCode,
 		Data:    data,
 	})
 }
@@ -30,58 +39,58 @@ func SuccessWithMessage(c *gin.Context, message string, data interface{}) {
 	})
 }
 
-// Error sends an error response
-func Error(c *gin.Context, code int, message string) {
+// Error sends an error response with message code
+func Error(c *gin.Context, code int, messageCode string) {
 	c.JSON(http.StatusOK, Response{
 		Code:    code,
-		Message: message,
+		Message: messageCode,
 	})
 }
 
-// ErrorWithStatus sends an error response with HTTP status code
-func ErrorWithStatus(c *gin.Context, httpStatus int, code int, message string) {
+// ErrorWithStatus sends an error response with HTTP status code and message code
+func ErrorWithStatus(c *gin.Context, httpStatus int, code int, messageCode string) {
 	c.JSON(httpStatus, Response{
 		Code:    code,
-		Message: message,
+		Message: messageCode,
 	})
 }
 
-// BadRequest sends a bad request error
-func BadRequest(c *gin.Context, message string) {
+// BadRequest sends a bad request error with message code
+func BadRequest(c *gin.Context, messageCode string) {
 	c.JSON(http.StatusOK, Response{
 		Code:    400,
-		Message: message,
+		Message: messageCode,
 	})
 }
 
-// Unauthorized sends an unauthorized error
-func Unauthorized(c *gin.Context, message string) {
+// Unauthorized sends an unauthorized error with message code
+func Unauthorized(c *gin.Context, messageCode string) {
 	c.JSON(http.StatusOK, Response{
 		Code:    401,
-		Message: message,
+		Message: messageCode,
 	})
 }
 
-// Forbidden sends a forbidden error
-func Forbidden(c *gin.Context, message string) {
+// Forbidden sends a forbidden error with message code
+func Forbidden(c *gin.Context, messageCode string) {
 	c.JSON(http.StatusOK, Response{
 		Code:    403,
-		Message: message,
+		Message: messageCode,
 	})
 }
 
-// NotFound sends a not found error
-func NotFound(c *gin.Context, message string) {
+// NotFound sends a not found error with message code
+func NotFound(c *gin.Context, messageCode string) {
 	c.JSON(http.StatusOK, Response{
 		Code:    404,
-		Message: message,
+		Message: messageCode,
 	})
 }
 
-// InternalServerError sends an internal server error
-func InternalServerError(c *gin.Context, message string) {
+// InternalServerError sends an internal server error with message code
+func InternalServerError(c *gin.Context, messageCode string) {
 	c.JSON(http.StatusOK, Response{
 		Code:    500,
-		Message: message,
+		Message: messageCode,
 	})
 }

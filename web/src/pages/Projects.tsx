@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, List, Button, Modal, Form, Input, Popconfirm, Tag, Space } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, FolderOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
 import type { Project, CreateProjectRequest } from '../types';
 
 export const Projects: React.FC = () => {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -46,15 +48,15 @@ export const Projects: React.FC = () => {
     <>
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 className="page-header__title">Projects</h1>
-          <p className="page-header__subtitle">Manage your static sites</p>
+          <h1 className="page-header__title">{t('projects.title')}</h1>
+          <p className="page-header__subtitle">{t('projects.subtitle')}</p>
         </div>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => setModalVisible(true)}
         >
-          New Project
+          {t('projects.newProject')}
         </Button>
       </div>
 
@@ -66,9 +68,9 @@ export const Projects: React.FC = () => {
             <div className="muted-section">
               <FolderOutlined className="muted-section__icon" />
               <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                No projects yet
+                {t('projects.noProjects')}
               </div>
-              <div className="muted-section__note">Create your first project to get started.</div>
+              <div className="muted-section__note">{t('projects.noProjectsDescription')}</div>
             </div>
           )
         }}
@@ -85,8 +87,8 @@ export const Projects: React.FC = () => {
                   <FolderOutlined />
                 </div>
                 <div className="project-card__badge-group">
-                  {project.is_published ? <Tag color="success">Published</Tag> : <Tag>Draft</Tag>}
-                  {project.has_password && <Tag color="warning">Protected</Tag>}
+                  {project.is_published ? <Tag color="success">{t('projects.published')}</Tag> : <Tag>{t('projects.draft')}</Tag>}
+                  {project.has_password && <Tag color="warning">{t('projects.protected')}</Tag>}
                 </div>
               </div>
 
@@ -95,7 +97,7 @@ export const Projects: React.FC = () => {
                   {project.display_name || project.name}
                 </div>
                 <div className="project-card__desc">
-                  {project.description || 'No description'}
+                  {project.description || t('dashboard.noDescription')}
                 </div>
               </div>
 
@@ -107,7 +109,7 @@ export const Projects: React.FC = () => {
                     icon={<EditOutlined />}
                     onClick={() => navigate(`/projects/${project.id}`)}
                   >
-                    Edit
+                    {t('projects.edit')}
                   </Button>
                   {project.is_published && (
                     <Button
@@ -118,16 +120,16 @@ export const Projects: React.FC = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      View
+                      {t('projects.view')}
                     </Button>
                   )}
                 </div>
                 <Popconfirm
-                  title="Delete project?"
-                  description="This action cannot be undone."
+                  title={t('projects.deleteProject')}
+                  description={t('projects.cannotUndo')}
                   onConfirm={() => handleDelete(project.id)}
-                  okText="Yes"
-                  cancelText="No"
+                  okText={t('common.yes')}
+                  cancelText={t('common.no')}
                 >
                   <Button type="text" danger icon={<DeleteOutlined />} />
                 </Popconfirm>
@@ -138,7 +140,7 @@ export const Projects: React.FC = () => {
       />
 
       <Modal
-        title="Create New Project"
+        title={t('projects.createNewProject')}
         open={modalVisible}
         onCancel={() => {
           setModalVisible(false);
@@ -150,30 +152,30 @@ export const Projects: React.FC = () => {
         <Form form={form} onFinish={handleCreate} layout="vertical">
           <Form.Item
             name="name"
-            label="Project Name (URL)"
+            label={t('projects.projectName')}
             rules={[
-              { required: true, message: 'Please enter project name' },
-              { min: 3, message: 'Name must be at least 3 characters' },
-              { max: 100, message: 'Name must be at most 100 characters' },
-              { pattern: /^[a-z0-9-]+$/, message: 'Only lowercase letters, numbers, and hyphens allowed' },
+              { required: true, message: t('validation.pleaseEnterProjectName') },
+              { min: 3, message: t('validation.nameMinLength') },
+              { max: 100, message: t('validation.nameMaxLength') },
+              { pattern: /^[a-z0-9-]+$/, message: t('validation.onlyLowercaseAllowed') },
             ]}
-            extra="This will be used in the URL: /s/project-name"
+            extra={t('projects.urlHelper')}
           >
-            <Input placeholder="my-website" />
+            <Input placeholder={t('projects.projectNamePlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name="display_name"
-            label="Display Name"
+            label={t('projects.displayName')}
           >
-            <Input placeholder="My Website" />
+            <Input placeholder={t('projects.displayNamePlaceholder')} />
           </Form.Item>
 
           <Form.Item
             name="description"
-            label="Description"
+            label={t('projects.description')}
           >
-            <Input.TextArea rows={3} placeholder="A brief description of your project" />
+            <Input.TextArea rows={3} placeholder={t('projects.descriptionPlaceholder')} />
           </Form.Item>
 
           <Form.Item className="mb-0">
@@ -182,10 +184,10 @@ export const Projects: React.FC = () => {
                 setModalVisible(false);
                 form.resetFields();
               }}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button type="primary" htmlType="submit">
-                Create
+                {t('projects.create')}
               </Button>
             </Space>
           </Form.Item>

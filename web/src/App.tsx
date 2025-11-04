@@ -5,6 +5,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import './i18n';
 
 // Lazy load pages
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));

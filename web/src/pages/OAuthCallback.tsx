@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Spin, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { handleRespWithNotifySuccess } from '../utils/handleResp';
 
 export const OAuthCallback: React.FC = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
@@ -16,7 +18,7 @@ export const OAuthCallback: React.FC = () => {
       const provider = searchParams.get('provider');
 
       if (!code || !provider) {
-        message.error('Invalid OAuth callback');
+        message.error(t('auth.invalidOAuthCallback'));
         navigate('/login');
         return;
       }
@@ -37,7 +39,7 @@ export const OAuthCallback: React.FC = () => {
     };
 
     handleCallback();
-  }, [searchParams, navigate, refreshUser]);
+  }, [searchParams, navigate, refreshUser, t]);
 
   return (
     <div style={{
@@ -67,7 +69,7 @@ export const OAuthCallback: React.FC = () => {
       </div>
       <Spin size="large" />
       <div style={{ fontSize: 15, color: 'var(--text-secondary)', fontWeight: 500 }}>
-        Completing authentication...
+        {t('auth.completingAuth')}
       </div>
     </div>
   );

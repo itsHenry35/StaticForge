@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, List, Button, Tag } from 'antd';
 import { ProjectOutlined, FileOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { handleRespWithoutNotify } from '../utils/handleResp';
-import type { Project, SystemStats } from '../types';
+import type { ApiResponse, Project, SystemStats } from '../types';
 
 export const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,7 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const promises = [apiService.getProjects()];
+      const promises: Array<Promise<ApiResponse<Project[]>> | Promise<ApiResponse<SystemStats>>> = [apiService.getProjects()];
 
       if (user?.is_admin) {
         promises.push(apiService.getSystemStats());
@@ -25,13 +27,13 @@ export const Dashboard: React.FC = () => {
       const [projectsResult, statsResult] = await Promise.allSettled(promises);
 
       if (projectsResult.status === 'fulfilled') {
-        handleRespWithoutNotify(projectsResult.value, (data) => {
+        handleRespWithoutNotify(projectsResult.value as ApiResponse<Project[]>, (data) => {
           setProjects(data || []);
         });
       }
 
       if (user?.is_admin && statsResult && statsResult.status === 'fulfilled') {
-        handleRespWithoutNotify(statsResult.value, (data) => {
+        handleRespWithoutNotify(statsResult.value as ApiResponse<SystemStats>, (data) => {
           setStats(data || null);
         });
       }
@@ -45,9 +47,9 @@ export const Dashboard: React.FC = () => {
   return (
     <>
       <div className="page-header">
-        <h1 className="page-header__title">Dashboard</h1>
+        <h1 className="page-header__title">{t('dashboard.title')}</h1>
         <p className="page-header__subtitle">
-          Welcome back, {user?.display_name || user?.username}!
+          {t('dashboard.welcome', { username: user?.display_name || user?.username })}
         </p>
       </div>
 
@@ -60,7 +62,7 @@ export const Dashboard: React.FC = () => {
                   <FileOutlined />
                 </div>
                 <div className="stat-card__content">
-                  <span className="stat-card__label">Total Users</span>
+                  <span className="stat-card__label">{t('dashboard.totalUsers')}</span>
                   <span className="stat-card__value">{stats.total_users}</span>
                 </div>
               </div>
@@ -73,7 +75,7 @@ export const Dashboard: React.FC = () => {
                   <ProjectOutlined />
                 </div>
                 <div className="stat-card__content">
-                  <span className="stat-card__label">Total Projects</span>
+                  <span className="stat-card__label">{t('dashboard.totalProjects')}</span>
                   <span className="stat-card__value">{stats.total_projects}</span>
                 </div>
               </div>
@@ -84,10 +86,10 @@ export const Dashboard: React.FC = () => {
 
       <Card
         className="list-card"
-        title="Recent Projects"
+        title={t('dashboard.recentProjects')}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/projects')}>
-            New Project
+            {t('dashboard.newProject')}
           </Button>
         }
         loading={loading}
@@ -97,16 +99,16 @@ export const Dashboard: React.FC = () => {
           <div className="muted-section">
             <ProjectOutlined className="muted-section__icon" />
             <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8 }}>
-              No projects yet
+              {t('dashboard.noProjects')}
             </div>
-            <div className="muted-section__note">Create your first project to get started.</div>
+            <div className="muted-section__note">{t('dashboard.noProjectsDescription')}</div>
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => navigate('/projects')}
               style={{ marginTop: 20 }}
             >
-              Create Project
+              {t('dashboard.createProject')}
             </Button>
           </div>
         ) : (
@@ -123,7 +125,7 @@ export const Dashboard: React.FC = () => {
                       size="small"
                       onClick={() => navigate(`/projects/${project.id}`)}
                     >
-                      Edit
+                      {t('dashboard.edit')}
                     </Button>,
                     project.is_published && (
                       <Button
@@ -134,7 +136,7 @@ export const Dashboard: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        View Site
+                        {t('dashboard.viewSite')}
                       </Button>
                     ),
                   ].filter(Boolean)}
@@ -153,15 +155,15 @@ export const Dashboard: React.FC = () => {
                     description={
                       <div className="project-card__desc-wrapper">
                         <div className="project-card__desc">
-                          {project.description || 'No description'}
+                          {project.description || t('dashboard.noDescription')}
                         </div>
                         <div className="project-card__badge-group">
                           {project.is_published ? (
-                            <Tag color="success">Published</Tag>
+                            <Tag color="success">{t('dashboard.published')}</Tag>
                           ) : (
-                            <Tag>Draft</Tag>
+                            <Tag>{t('dashboard.draft')}</Tag>
                           )}
-                          {project.has_password && <Tag color="warning">Protected</Tag>}
+                          {project.has_password && <Tag color="warning">{t('dashboard.protected')}</Tag>}
                         </div>
                       </div>
                     }
@@ -172,7 +174,7 @@ export const Dashboard: React.FC = () => {
             {projects.length > 5 && (
               <div className="list-card__item list-card__item--footer">
                 <Button type="link" onClick={() => navigate('/projects')}>
-                  View all projects →
+                  {t('dashboard.viewAllProjects')}
                 </Button>
               </div>
             )}

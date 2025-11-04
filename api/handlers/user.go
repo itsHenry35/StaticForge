@@ -31,7 +31,7 @@ func GetCurrentUser(c *gin.Context) {
 func UpdateCurrentUser(c *gin.Context) {
 	var req types.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -39,7 +39,7 @@ func UpdateCurrentUser(c *gin.Context) {
 
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
-		utils.NotFound(c, "User not found")
+		utils.NotFound(c, utils.MsgUserNotFound)
 		return
 	}
 
@@ -51,14 +51,14 @@ func UpdateCurrentUser(c *gin.Context) {
 
 	if req.Email != "" {
 		if !utils.ValidateEmail(req.Email) {
-			utils.BadRequest(c, "Invalid email format")
+			utils.BadRequest(c, utils.MsgInvalidEmail)
 			return
 		}
 
 		// Check if email already exists
 		var existingUser models.User
 		if err := database.DB.Where("email = ? AND id != ?", req.Email, user.ID).First(&existingUser).Error; err == nil {
-			utils.BadRequest(c, "Email already exists")
+			utils.BadRequest(c, utils.MsgEmailExists)
 			return
 		}
 
@@ -67,13 +67,13 @@ func UpdateCurrentUser(c *gin.Context) {
 
 	if req.Password != "" {
 		if !utils.ValidatePassword(req.Password) {
-			utils.BadRequest(c, "Password must be at least 6 characters")
+			utils.BadRequest(c, utils.MsgInvalidPassword)
 			return
 		}
 
 		hashedPassword, err := utils.HashPassword(req.Password)
 		if err != nil {
-			utils.InternalServerError(c, "Failed to hash password")
+			utils.InternalServerError(c, utils.MsgPasswordHashFailed)
 			return
 		}
 
@@ -82,7 +82,7 @@ func UpdateCurrentUser(c *gin.Context) {
 
 	if len(updates) > 0 {
 		if err := database.DB.Model(&user).Updates(updates).Error; err != nil {
-			utils.InternalServerError(c, "Failed to update user")
+			utils.InternalServerError(c, utils.MsgUserUpdateFailed)
 			return
 		}
 	}
@@ -90,7 +90,7 @@ func UpdateCurrentUser(c *gin.Context) {
 	// Reload user
 	database.DB.First(&user, userID)
 
-	utils.Success(c, types.UserResponse{
+	utils.SuccessWithCode(c, utils.MsgUserUpdated, types.UserResponse{
 		ID:          user.ID,
 		Username:    user.Username,
 		DisplayName: user.DisplayName,
@@ -105,7 +105,7 @@ func UpdateCurrentUser(c *gin.Context) {
 func ChangePassword(c *gin.Context) {
 	var req types.ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -113,44 +113,44 @@ func ChangePassword(c *gin.Context) {
 
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
-		utils.NotFound(c, "User not found")
+		utils.NotFound(c, utils.MsgUserNotFound)
 		return
 	}
 
 	if !user.HasPassword() {
-		utils.BadRequest(c, "This account uses OAuth login")
+		utils.BadRequest(c, utils.MsgAccountUsesOAuth)
 		return
 	}
 
 	if !utils.CheckPassword(req.OldPassword, user.Password) {
-		utils.BadRequest(c, "Incorrect old password")
+		utils.BadRequest(c, utils.MsgOldPasswordIncorrect)
 		return
 	}
 
 	if !utils.ValidatePassword(req.NewPassword) {
-		utils.BadRequest(c, "New password must be at least 6 characters")
+		utils.BadRequest(c, utils.MsgInvalidPassword)
 		return
 	}
 
 	hashedPassword, err := utils.HashPassword(req.NewPassword)
 	if err != nil {
-		utils.InternalServerError(c, "Failed to hash password")
+		utils.InternalServerError(c, utils.MsgPasswordHashFailed)
 		return
 	}
 
 	if err := database.DB.Model(&user).Update("password", hashedPassword).Error; err != nil {
-		utils.InternalServerError(c, "Failed to update password")
+		utils.InternalServerError(c, utils.MsgPasswordUpdateFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "Password changed successfully", nil)
+	utils.SuccessWithCode(c, utils.MsgPasswordUpdated, nil)
 }
 
 // GetUsers returns list of all users (admin only)
 func GetUsers(c *gin.Context) {
 	var users []models.User
 	if err := database.DB.Order("created_at DESC").Find(&users).Error; err != nil {
-		utils.InternalServerError(c, "Failed to get users")
+		utils.InternalServerError(c, utils.MsgDatabaseError)
 		return
 	}
 
@@ -176,7 +176,7 @@ func GetUserByID(c *gin.Context) {
 
 	var user models.User
 	if err := database.DB.Preload("Projects").First(&user, userID).Error; err != nil {
-		utils.NotFound(c, "User not found")
+		utils.NotFound(c, utils.MsgUserNotFound)
 		return
 	}
 
@@ -197,13 +197,13 @@ func UpdateUser(c *gin.Context) {
 
 	var req types.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
-		utils.NotFound(c, "User not found")
+		utils.NotFound(c, utils.MsgUserNotFound)
 		return
 	}
 
@@ -211,13 +211,13 @@ func UpdateUser(c *gin.Context) {
 
 	if req.Email != "" {
 		if !utils.ValidateEmail(req.Email) {
-			utils.BadRequest(c, "Invalid email format")
+			utils.BadRequest(c, utils.MsgInvalidEmail)
 			return
 		}
 
 		var existingUser models.User
 		if err := database.DB.Where("email = ? AND id != ?", req.Email, user.ID).First(&existingUser).Error; err == nil {
-			utils.BadRequest(c, "Email already exists")
+			utils.BadRequest(c, utils.MsgEmailExists)
 			return
 		}
 
@@ -226,14 +226,14 @@ func UpdateUser(c *gin.Context) {
 
 	if len(updates) > 0 {
 		if err := database.DB.Model(&user).Updates(updates).Error; err != nil {
-			utils.InternalServerError(c, "Failed to update user")
+			utils.InternalServerError(c, utils.MsgUserUpdateFailed)
 			return
 		}
 	}
 
 	database.DB.First(&user, userID)
 
-	utils.Success(c, types.UserResponse{
+	utils.SuccessWithCode(c, utils.MsgUserUpdated, types.UserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		Email:     user.Email,
@@ -249,16 +249,16 @@ func ToggleUserStatus(c *gin.Context) {
 
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
-		utils.NotFound(c, "User not found")
+		utils.NotFound(c, utils.MsgUserNotFound)
 		return
 	}
 
 	if err := database.DB.Model(&user).Update("is_active", !user.IsActive).Error; err != nil {
-		utils.InternalServerError(c, "Failed to update user status")
+		utils.InternalServerError(c, utils.MsgUserUpdateFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "User status updated", nil)
+	utils.SuccessWithCode(c, utils.MsgUserUpdated, nil)
 }
 
 // ToggleUserAdmin toggles user admin status (admin only)
@@ -268,22 +268,22 @@ func ToggleUserAdmin(c *gin.Context) {
 
 	// Prevent admin from removing their own admin status
 	if fmt.Sprint(userID) == fmt.Sprint(currentUserID) {
-		utils.BadRequest(c, "Cannot modify your own admin status")
+		utils.BadRequest(c, utils.MsgCannotModifySelf)
 		return
 	}
 
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
-		utils.NotFound(c, "User not found")
+		utils.NotFound(c, utils.MsgUserNotFound)
 		return
 	}
 
 	if err := database.DB.Model(&user).Update("is_admin", !user.IsAdmin).Error; err != nil {
-		utils.InternalServerError(c, "Failed to update user admin status")
+		utils.InternalServerError(c, utils.MsgUserUpdateFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "User admin status updated", nil)
+	utils.SuccessWithCode(c, utils.MsgUserUpdated, nil)
 }
 
 // DeleteUser deletes user (admin only)
@@ -292,7 +292,7 @@ func DeleteUser(c *gin.Context) {
 
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
-		utils.NotFound(c, "User not found")
+		utils.NotFound(c, utils.MsgUserNotFound)
 		return
 	}
 
@@ -317,9 +317,9 @@ func DeleteUser(c *gin.Context) {
 
 	// Delete user
 	if err := database.DB.Delete(&user).Error; err != nil {
-		utils.InternalServerError(c, "Failed to delete user")
+		utils.InternalServerError(c, utils.MsgUserDeleteFailed)
 		return
 	}
 
-	utils.SuccessWithMessage(c, "User deleted successfully", nil)
+	utils.SuccessWithCode(c, utils.MsgUserDeleted, nil)
 }

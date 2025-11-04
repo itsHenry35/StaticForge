@@ -25,7 +25,7 @@ func GetProjectAnalytics(c *gin.Context) {
 	}
 
 	if err := query.First(&project, projectID).Error; err != nil {
-		utils.NotFound(c, "Project not found")
+		utils.NotFound(c, utils.MsgProjectNotFound)
 		return
 	}
 

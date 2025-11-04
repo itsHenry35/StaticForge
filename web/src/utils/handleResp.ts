@@ -4,6 +4,7 @@
  */
 
 import type { ApiResponse } from '../types/index';
+import i18n from '../i18n';
 
 // 全局处理器类型
 interface ToastHandler {
@@ -50,7 +51,8 @@ const handleRespCore = <T>(
   if (resp.code === 200) {
     // 成功响应
     if (notifySuccess && resp.message) {
-      globalToast?.success(resp.message);
+      const translatedMessage = i18n.t(resp.message);
+      globalToast?.success(translatedMessage);
     }
 
     // Always call success callback on 200, regardless of data presence
@@ -58,7 +60,8 @@ const handleRespCore = <T>(
   } else {
     // 错误响应
     if (notifyError && resp.message) {
-      globalToast?.error(resp.message);
+      const translatedMessage = i18n.t(resp.message);
+      globalToast?.error(translatedMessage);
     }
 
     // 401 未授权 - 自动退出登录
