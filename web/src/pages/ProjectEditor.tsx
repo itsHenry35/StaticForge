@@ -33,7 +33,8 @@ import {
   FileAddOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import Editor from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
+import { loader, Editor } from '@monaco-editor/react';
 import { apiService } from '../services/api';
 import type { Project, File as FileType, Analytics } from '../types';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
@@ -73,6 +74,8 @@ export const ProjectEditor: React.FC = () => {
   const [publishForm] = Form.useForm();
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const folderInputRef = useRef<HTMLInputElement>(null);
+
+  loader.config({ monaco });
 
   const projectId = parseInt(id || '0');
 
