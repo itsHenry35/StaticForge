@@ -17,6 +17,7 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LoggerMiddleware())
 	r.Use(middlewares.SecurityHeadersMiddleware())
+	r.Use(middlewares.TrailingSlashMiddleware())
 
 	// API routes - add origin check to prevent access from /s/
 	api := r.Group("/api")
