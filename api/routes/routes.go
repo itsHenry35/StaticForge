@@ -83,7 +83,7 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 			admin.GET("/users/:id", handlers.GetUserByID)
 			admin.PUT("/users/:id", handlers.UpdateUser)
 			admin.POST("/users/:id/toggle-status", handlers.ToggleUserStatus)
-			admin.POST("/users/:id/toggle-admin", handlers.ToggleUserAdmin)
+			admin.POST("/users/:id/set-type", handlers.SetUserType)
 			admin.DELETE("/users/:id", handlers.DeleteUser)
 
 			// Project management

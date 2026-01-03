@@ -20,7 +20,7 @@ export const Dashboard: React.FC = () => {
     const fetchData = async () => {
       const promises: Array<Promise<ApiResponse<Project[]>> | Promise<ApiResponse<SystemStats>>> = [apiService.getProjects()];
 
-      if (user?.is_admin) {
+      if (user?.type === 'admin') {
         promises.push(apiService.getSystemStats());
       }
 
@@ -32,7 +32,7 @@ export const Dashboard: React.FC = () => {
         });
       }
 
-      if (user?.is_admin && statsResult && statsResult.status === 'fulfilled') {
+      if (user?.type === 'admin' && statsResult && statsResult.status === 'fulfilled') {
         handleRespWithoutNotify(statsResult.value as ApiResponse<SystemStats>, (data) => {
           setStats(data || null);
         });
@@ -53,7 +53,7 @@ export const Dashboard: React.FC = () => {
         </p>
       </div>
 
-      {user?.is_admin && stats && (
+      {user?.type === 'admin' && stats && (
         <Row gutter={[24, 24]} className="mb-8">
           <Col xs={24} sm={12}>
             <div className="surface-card stat-card-container">

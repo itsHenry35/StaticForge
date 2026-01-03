@@ -52,7 +52,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Set user info in context
 		c.Set("user_id", user.ID)
 		c.Set("username", user.Username)
-		c.Set("is_admin", user.IsAdmin)
+		c.Set("is_admin", user.IsAdmin())
 		c.Set("user", user)
 
 		c.Next()
@@ -104,7 +104,7 @@ func OptionalAuthMiddleware() gin.HandlerFunc {
 		if user.IsActive {
 			c.Set("user_id", user.ID)
 			c.Set("username", user.Username)
-			c.Set("is_admin", user.IsAdmin)
+			c.Set("is_admin", user.IsAdmin())
 			c.Set("user", user)
 		}
 

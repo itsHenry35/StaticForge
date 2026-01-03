@@ -21,7 +21,7 @@ func GetCurrentUser(c *gin.Context) {
 		Username:    user.Username,
 		DisplayName: user.DisplayName,
 		Email:       user.Email,
-		IsAdmin:     user.IsAdmin,
+		Type:        user.Type,
 		IsActive:    user.IsActive,
 		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
@@ -95,7 +95,7 @@ func UpdateCurrentUser(c *gin.Context) {
 		Username:    user.Username,
 		DisplayName: user.DisplayName,
 		Email:       user.Email,
-		IsAdmin:     user.IsAdmin,
+		Type:        user.Type,
 		IsActive:    user.IsActive,
 		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
@@ -161,7 +161,7 @@ func GetUsers(c *gin.Context) {
 			Username:    user.Username,
 			DisplayName: user.DisplayName,
 			Email:       user.Email,
-			IsAdmin:     user.IsAdmin,
+			Type:        user.Type,
 			IsActive:    user.IsActive,
 			CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 		})
@@ -185,7 +185,7 @@ func GetUserByID(c *gin.Context) {
 		Username:    user.Username,
 		DisplayName: user.DisplayName,
 		Email:       user.Email,
-		IsAdmin:     user.IsAdmin,
+		Type:        user.Type,
 		IsActive:    user.IsActive,
 		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 	})
@@ -234,11 +234,11 @@ func UpdateUser(c *gin.Context) {
 	database.DB.First(&user, userID)
 
 	utils.SuccessWithCode(c, utils.MsgUserUpdated, types.UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		IsAdmin:   user.IsAdmin,
-		IsActive:  user.IsActive,
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Type:     user.Type,
+		IsActive: user.IsActive,
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 	})
 }
@@ -261,14 +261,23 @@ func ToggleUserStatus(c *gin.Context) {
 	utils.SuccessWithCode(c, utils.MsgUserUpdated, nil)
 }
 
-// ToggleUserAdmin toggles user admin status (admin only)
-func ToggleUserAdmin(c *gin.Context) {
+// SetUserType sets user type (admin only)
+func SetUserType(c *gin.Context) {
 	userID := c.Param("id")
 	currentUserID, _ := c.Get("user_id")
 
-	// Prevent admin from removing their own admin status
+	// Prevent admin from changing their own type
 	if fmt.Sprint(userID) == fmt.Sprint(currentUserID) {
 		utils.BadRequest(c, utils.MsgCannotModifySelf)
+		return
+	}
+
+	var req struct {
+		Type string `json:"type" binding:"required,oneof=normal verified admin"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, utils.MsgInvalidRequest)
 		return
 	}
 
@@ -278,7 +287,7 @@ func ToggleUserAdmin(c *gin.Context) {
 		return
 	}
 
-	if err := database.DB.Model(&user).Update("is_admin", !user.IsAdmin).Error; err != nil {
+	if err := database.DB.Model(&user).Update("type", req.Type).Error; err != nil {
 		utils.InternalServerError(c, utils.MsgUserUpdateFailed)
 		return
 	}

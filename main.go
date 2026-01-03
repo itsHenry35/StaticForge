@@ -121,7 +121,7 @@ func initializeAdminAccount() error {
 			Username: "admin",
 			Email:    "admin@staticforge.local",
 			Password: hashedPassword,
-			IsAdmin:  true,
+			Type:     "admin",
 			IsActive: true,
 		}
 

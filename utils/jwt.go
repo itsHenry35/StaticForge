@@ -11,18 +11,18 @@ import (
 type Claims struct {
 	UserID   uint   `json:"user_id"`
 	Username string `json:"username"`
-	IsAdmin  bool   `json:"is_admin"`
+	Type     string `json:"type"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken generates a JWT token for a user
-func GenerateToken(userID uint, username string, isAdmin bool) (string, error) {
+func GenerateToken(userID uint, username string, userType string) (string, error) {
 	cfg := config.GetConfig()
 
 	claims := Claims{
 		UserID:   userID,
 		Username: username,
-		IsAdmin:  isAdmin,
+		Type:     userType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(cfg.JWT.Expire) * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

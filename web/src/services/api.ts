@@ -237,8 +237,8 @@ class ApiService {
     return await callApi(() => this.client.post<ApiResponse<void>>(`/api/admin/users/${id}/toggle-status`));
   }
 
-  async toggleUserAdmin(id: number): Promise<ApiResponse<void>> {
-    return await callApi(() => this.client.post<ApiResponse<void>>(`/api/admin/users/${id}/toggle-admin`));
+  async setUserType(id: number, type: 'normal' | 'verified' | 'admin'): Promise<ApiResponse<void>> {
+    return await callApi(() => this.client.post<ApiResponse<void>>(`/api/admin/users/${id}/set-type`, { type }));
   }
 
   async getAllProjects(): Promise<ApiResponse<Project[]>> {

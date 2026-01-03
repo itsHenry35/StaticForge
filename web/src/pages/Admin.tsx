@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Table, Button, Popconfirm, Tag, Space, Avatar, Input } from 'antd';
+import { Card, Tabs, Table, Button, Popconfirm, Tag, Space, Avatar, Input, Select } from 'antd';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
 import {
   UserOutlined,
@@ -11,6 +11,7 @@ import {
   CrownOutlined,
   EditOutlined,
   SearchOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -57,8 +58,8 @@ export const Admin: React.FC = () => {
     });
   };
 
-  const handleToggleUserAdmin = async (userId: number) => {
-    const response = await apiService.toggleUserAdmin(userId);
+  const handleSetUserType = async (userId: number, type: 'normal' | 'verified' | 'admin') => {
+    const response = await apiService.setUserType(userId, type);
     handleRespWithNotifySuccess(response, () => {
       fetchUsers();
     });
@@ -101,12 +102,31 @@ export const Admin: React.FC = () => {
       ),
     },
     {
-      title: t('admin.role'),
-      dataIndex: 'is_admin',
-      key: 'is_admin',
-      render: (isAdmin: boolean) => (
-        <Tag color={isAdmin ? 'red' : 'blue'}>{isAdmin ? t('admin.admin') : t('admin.userRole')}</Tag>
-      ),
+      title: t('admin.userType'),
+      key: 'type',
+      render: (_: unknown, record: User) => {
+        const getTypeColor = (type: string) => {
+          switch (type) {
+            case 'admin': return 'red';
+            case 'verified': return 'gold';
+            default: return 'blue';
+          }
+        };
+
+        const getTypeIcon = (type: string) => {
+          switch (type) {
+            case 'admin': return <CrownOutlined />;
+            case 'verified': return <SafetyCertificateOutlined />;
+            default: return <UserOutlined />;
+          }
+        };
+
+        return (
+          <Tag color={getTypeColor(record.type)} icon={getTypeIcon(record.type)}>
+            {t(`admin.type.${record.type}`)}
+          </Tag>
+        );
+      },
     },
     {
       title: t('admin.status'),
@@ -138,16 +158,25 @@ export const Admin: React.FC = () => {
         const isCurrentUser = currentUser.id === record.id;
 
         return (
-          <Space>
+          <Space size="small" wrap>
             {!isCurrentUser && (
               <>
-                <Button
+                <Select
                   size="small"
-                  icon={record.is_admin ? <UserOutlined /> : <CrownOutlined />}
-                  onClick={() => handleToggleUserAdmin(record.id)}
+                  value={record.type}
+                  onChange={(value) => handleSetUserType(record.id, value)}
+                  style={{ width: 110, height: 36 }}
                 >
-                  {record.is_admin ? t('admin.revokeAdmin') : t('admin.makeAdmin')}
-                </Button>
+                  <Select.Option value="normal">
+                    {t('admin.type.normal')}
+                  </Select.Option>
+                  <Select.Option value="verified">
+                    {t('admin.type.verified')}
+                  </Select.Option>
+                  <Select.Option value="admin">
+                    {t('admin.type.admin')}
+                  </Select.Option>
+                </Select>
                 <Button
                   size="small"
                   icon={record.is_active ? <StopOutlined /> : <CheckCircleOutlined />}

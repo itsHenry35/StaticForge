@@ -65,7 +65,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     },
   ];
 
-  if (user?.is_admin) {
+  if (user?.type === 'admin') {
     menuItems.push({
       key: '/admin',
       icon: <TeamOutlined />,
@@ -166,7 +166,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="text-left">
               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{user?.display_name || user?.username}</div>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-                {user?.is_admin ? t('nav.administrator') : t('nav.user')}
+                {user?.type === 'admin' ? t('nav.administrator') : t('nav.user')}
               </div>
             </div>
           </button>

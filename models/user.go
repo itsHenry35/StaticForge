@@ -15,7 +15,7 @@ type User struct {
 	DisplayName string `gorm:"size:100" json:"display_name"`
 	Email       string `gorm:"uniqueIndex;size:255" json:"email"`
 	Password    string `gorm:"size:255" json:"-"` // bcrypt hash, can be empty for OAuth users
-	IsAdmin     bool   `gorm:"default:false" json:"is_admin"`
+	Type        string `gorm:"type:varchar(20);default:'normal'" json:"type"` // normal, verified, admin
 	IsActive    bool   `gorm:"default:true" json:"is_active"`
 
 	// Relations
@@ -35,4 +35,14 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 // HasPassword checks if user has a password set
 func (u *User) HasPassword() bool {
 	return u.Password != ""
+}
+
+// IsAdmin checks if user is admin
+func (u *User) IsAdmin() bool {
+	return u.Type == "admin"
+}
+
+// IsVerified checks if user is verified or admin
+func (u *User) IsVerified() bool {
+	return u.Type == "verified" || u.Type == "admin"
 }

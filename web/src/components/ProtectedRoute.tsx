@@ -23,7 +23,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && !user.is_admin) {
+  if (requireAdmin && user.type !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
 

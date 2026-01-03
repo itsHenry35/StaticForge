@@ -47,7 +47,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateToken(user.ID, user.Username, user.IsAdmin)
+	token, err := utils.GenerateToken(user.ID, user.Username, user.Type)
 	if err != nil {
 		utils.InternalServerError(c, utils.MsgTokenGenerationFailed)
 		return
@@ -56,13 +56,13 @@ func Login(c *gin.Context) {
 	utils.SuccessWithCode(c, utils.MsgLoginSuccess, types.LoginResponse{
 		Token: token,
 		User: types.UserResponse{
-			ID:            user.ID,
-			Username:      user.Username,
-			DisplayName:   user.DisplayName,
-			Email:         user.Email,
-			IsAdmin:       user.IsAdmin,
-			IsActive:      user.IsActive,
-			CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+			ID:          user.ID,
+			Username:    user.Username,
+			DisplayName: user.DisplayName,
+			Email:       user.Email,
+			Type:        user.Type,
+			IsActive:    user.IsActive,
+			CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 		},
 	})
 }
@@ -120,7 +120,7 @@ func Register(c *gin.Context) {
 		DisplayName: req.DisplayName,
 		Email:       req.Email,
 		Password:    hashedPassword,
-		IsAdmin:     false,
+		Type:        "normal",
 		IsActive:    true,
 	}
 
@@ -129,7 +129,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateToken(user.ID, user.Username, user.IsAdmin)
+	token, err := utils.GenerateToken(user.ID, user.Username, user.Type)
 	if err != nil {
 		utils.InternalServerError(c, utils.MsgTokenGenerationFailed)
 		return
@@ -138,13 +138,13 @@ func Register(c *gin.Context) {
 	utils.SuccessWithCode(c, utils.MsgRegisterSuccess, types.LoginResponse{
 		Token: token,
 		User: types.UserResponse{
-			ID:            user.ID,
-			Username:      user.Username,
-			DisplayName:   user.DisplayName,
-			Email:         user.Email,
-			IsAdmin:       user.IsAdmin,
-			IsActive:      user.IsActive,
-			CreatedAt:     user.CreatedAt.Format(time.RFC3339),
+			ID:          user.ID,
+			Username:    user.Username,
+			DisplayName: user.DisplayName,
+			Email:       user.Email,
+			Type:        user.Type,
+			IsActive:    user.IsActive,
+			CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 		},
 	})
 }
@@ -279,7 +279,7 @@ func OAuthCallback(c *gin.Context) {
 			Username:    username,
 			DisplayName: displayName,
 			Email:       email,
-			IsAdmin:     false,
+			Type:        "normal",
 			IsActive:    true,
 		}
 
@@ -295,7 +295,7 @@ func OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	jwtToken, err := utils.GenerateToken(user.ID, user.Username, user.IsAdmin)
+	jwtToken, err := utils.GenerateToken(user.ID, user.Username, user.Type)
 	if err != nil {
 		c.Redirect(http.StatusFound, "/login?error=token_generation_failed")
 		return

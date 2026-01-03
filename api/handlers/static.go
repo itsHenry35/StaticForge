@@ -305,8 +305,8 @@ func ServeStaticSite(c *gin.Context) {
 		}
 	}
 
-	// Check consent cookie - required for first-time access (unless creator is admin)
-	if !project.User.IsAdmin {
+	// Check consent cookie - required for first-time access (unless creator is admin or verified user)
+	if !project.User.IsAdmin() && !project.User.IsVerified() {
 		consentCookie, err := c.Cookie(fmt.Sprintf("consent_%s", projectName))
 		if err != nil || consentCookie != "true" {
 			// No consent, redirect to auth page

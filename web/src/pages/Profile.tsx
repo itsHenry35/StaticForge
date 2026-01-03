@@ -287,7 +287,7 @@ export const Profile: React.FC = () => {
               style={{
                 display: 'inline-block',
                 padding: '6px 16px',
-                background: user?.is_admin
+                background: user?.type === 'admin'
                   ? 'linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)'
                   : 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)',
                 color: '#fff',
@@ -297,12 +297,12 @@ export const Profile: React.FC = () => {
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 marginBottom: 24,
-                boxShadow: user?.is_admin
+                boxShadow: user?.type === 'admin'
                   ? '0 2px 8px rgba(255, 77, 79, 0.3)'
                   : '0 2px 8px rgba(82, 196, 26, 0.3)',
               }}
             >
-              {user?.is_admin ? t('profile.administrator') : t('profile.user')}
+              {user?.type === 'admin' ? t('profile.administrator') : t('profile.user')}
             </div>
 
             <Divider style={{ margin: '24px 0' }} />

@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const resp = await apiService.getCurrentUser();
         handleRespWithoutNotify(resp, (userData) => {
           setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
         });
       }
       setLoading(false);
