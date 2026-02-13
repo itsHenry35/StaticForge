@@ -5,9 +5,10 @@ type PublicConfigResponse struct {
 }
 
 type ConfigResponse struct {
-	AllowRegister bool              `json:"allow_register"`
-	OAuth         []OAuthConfig     `json:"oauth"`
-	Replacements  []ReplacementRule `json:"replacements"`
+	AllowRegister       bool              `json:"allow_register"`
+	OAuth               []OAuthConfigFull `json:"oauth"`
+	Replacements        []ReplacementRule `json:"replacements"`
+	AllowedIframeOrigin string            `json:"allowed_iframe_origin"`
 }
 
 type ReplacementRule struct {
@@ -34,9 +35,10 @@ type OAuthConfigFull struct {
 }
 
 type UpdateConfigRequest struct {
-	AllowRegister bool                   `json:"allow_register"`
-	OAuth         []OAuthProviderRequest `json:"oauth"`
-	Replacements  []ReplacementRule      `json:"replacements"`
+	AllowRegister       bool                   `json:"allow_register"`
+	OAuth               []OAuthProviderRequest `json:"oauth"`
+	Replacements        []ReplacementRule      `json:"replacements"`
+	AllowedIframeOrigin string                 `json:"allowed_iframe_origin"`
 }
 
 type OAuthProviderRequest struct {

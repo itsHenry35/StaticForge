@@ -13,15 +13,16 @@ import (
 )
 
 type Config struct {
-	Server        ServerConfig      `json:"server"`
-	Database      DatabaseConfig    `json:"database"`
-	Redis         RedisConfig       `json:"redis"`
-	JWT           JWTConfig         `json:"jwt"`
-	OAuth         []OAuthConfig     `json:"oauth"`
-	Upload        UploadConfig      `json:"upload"`
-	AllowRegister bool              `json:"allow_register"`
-	Replacements  []ReplacementRule `json:"replacements"`
-	mu            sync.RWMutex      `json:"-"`
+	Server              ServerConfig      `json:"server"`
+	Database            DatabaseConfig    `json:"database"`
+	Redis               RedisConfig       `json:"redis"`
+	JWT                 JWTConfig         `json:"jwt"`
+	OAuth               []OAuthConfig     `json:"oauth"`
+	Upload              UploadConfig      `json:"upload"`
+	AllowRegister       bool              `json:"allow_register"`
+	Replacements        []ReplacementRule `json:"replacements"`
+	AllowedIframeOrigin string            `json:"allowed_iframe_origin"` // Allowed origins for iframe embedding (* for all, empty for none)
+	mu                  sync.RWMutex      `json:"-"`
 }
 
 type ReplacementRule struct {
@@ -179,8 +180,9 @@ func createDefaultConfig(path string) error {
 			MaxSize: 100 * 1024 * 1024, // 100MB
 			DataDir: "data/projects",
 		},
-		AllowRegister: true,
-		Replacements:  []ReplacementRule{},
+		AllowRegister:       true,
+		Replacements:        []ReplacementRule{},
+		AllowedIframeOrigin: "*", // Allow all origins by default
 	}
 
 	data, err := json.MarshalIndent(defaultConfig, "", "  ")

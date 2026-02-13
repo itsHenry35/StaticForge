@@ -41,10 +41,11 @@ func GetConfig(c *gin.Context) {
 		})
 	}
 
-	utils.Success(c, map[string]interface{}{
-		"allow_register": cfg.AllowRegister,
-		"oauth":          oauthConfigs,
-		"replacements":   replacements,
+	utils.Success(c, types.ConfigResponse{
+		AllowRegister:       cfg.AllowRegister,
+		OAuth:               oauthConfigs,
+		Replacements:        replacements,
+		AllowedIframeOrigin: cfg.AllowedIframeOrigin,
 	})
 }
 
@@ -60,6 +61,7 @@ func UpdateConfig(c *gin.Context) {
 
 	// Update all config fields
 	cfg.AllowRegister = req.AllowRegister
+	cfg.AllowedIframeOrigin = req.AllowedIframeOrigin
 
 	// Update OAuth providers
 	cfg.OAuth = []config.OAuthConfig{}

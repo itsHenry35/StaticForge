@@ -266,7 +266,7 @@ class ApiService {
     return await callApi(() => this.client.get<ApiResponse<ConfigData>>('/api/admin/config'));
   }
 
-  async updateConfig(data: { allow_register: boolean; oauth: OAuthConfigFull[]; replacements?: { from: string; to: string }[] }): Promise<ApiResponse<null>> {
+  async updateConfig(data: { allow_register: boolean; oauth: OAuthConfigFull[]; replacements?: { from: string; to: string }[], allowed_iframe_origin: string }): Promise<ApiResponse<null>> {
     return await callApi(() => this.client.put<ApiResponse<null>>('/api/admin/config', data));
   }
 }

@@ -4,11 +4,14 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/itsHenry35/StaticForge/config"
 )
 
 // SecurityHeadersMiddleware adds security headers to responses
 func SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		cfg := config.GetConfig()
+
 		// For static sites (/s/), apply CSP to allow full functionality but protect API
 		if strings.HasPrefix(c.Request.URL.Path, "/s/") {
 			// Allow scripts, images, fonts, frames, etc. from anywhere
@@ -27,15 +30,27 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 					"base-uri 'self'; "+
 					"form-action 'none'")
 
-			// Allow embedding in iframes from any origin
+			// Allow embedding static sites in iframes from any origin
 			c.Writer.Header().Set("X-Frame-Options", "ALLOWALL")
 
 			// Prevent credentials from being sent with cross-origin requests
 			c.Writer.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
 			c.Writer.Header().Set("Cross-Origin-Embedder-Policy", "unsafe-none")
 		} else {
-			// For API routes, prevent clickjacking
-			c.Writer.Header().Set("X-Frame-Options", "DENY")
+			// For admin/management pages, use configured iframe origin policy
+			allowedOrigin := cfg.AllowedIframeOrigin
+
+			if allowedOrigin == "*" {
+				// Allow all origins to embed
+				c.Writer.Header().Set("X-Frame-Options", "ALLOWALL")
+			} else if allowedOrigin != "" {
+				// Allow specific origin(s) - use CSP frame-ancestors
+				// X-Frame-Options doesn't support specific origins
+				c.Writer.Header().Set("Content-Security-Policy", "frame-ancestors "+allowedOrigin)
+			} else {
+				// Default: prevent clickjacking (no iframe embedding)
+				c.Writer.Header().Set("X-Frame-Options", "DENY")
+			}
 		}
 
 		// Prevent MIME type sniffing

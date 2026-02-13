@@ -34,7 +34,26 @@ export const Settings: React.FC = () => {
     const response = await apiService.updateConfig({
       allow_register: checked,
       oauth: config.oauth || [],
-      replacements: config.replacements || []
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin || '*'
+    });
+    handleRespWithNotifySuccess(response, async () => {
+      await fetchConfig();
+    });
+  };
+
+  const handleUpdateIframeOriginLocal = (value: string) => {
+    if (!config) return;
+    setConfig({ ...config, allowed_iframe_origin: value });
+  };
+
+  const handleSaveIframeOrigin = async () => {
+    if (!config) return;
+    const response = await apiService.updateConfig({
+      allow_register: config.allow_register,
+      oauth: config.oauth || [],
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin || '*'
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -60,7 +79,8 @@ export const Settings: React.FC = () => {
     const response = await apiService.updateConfig({
       allow_register: config.allow_register,
       oauth: updatedOAuth,
-      replacements: config.replacements || []
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin
     });
     handleRespWithNotifySuccess(response, async () => {
       setOauthModalVisible(false);
@@ -75,7 +95,8 @@ export const Settings: React.FC = () => {
     const response = await apiService.updateConfig({
       allow_register: config.allow_register,
       oauth: (config.oauth || []).filter(p => p.name !== name),
-      replacements: config.replacements || []
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -94,7 +115,8 @@ export const Settings: React.FC = () => {
     const response = await apiService.updateConfig({
       allow_register: config.allow_register,
       oauth: config.oauth || [],
-      replacements: newReplacements
+      replacements: newReplacements,
+      allowed_iframe_origin: config.allowed_iframe_origin
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -113,7 +135,8 @@ export const Settings: React.FC = () => {
     const response = await apiService.updateConfig({
       allow_register: config.allow_register,
       oauth: config.oauth || [],
-      replacements: config.replacements || []
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -196,6 +219,25 @@ export const Settings: React.FC = () => {
                 checked={config?.allow_register}
                 onChange={handleUpdateAllowRegister}
               />
+            </div>
+
+            <Divider />
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 4 }}>{t('settings.allowedIframeOrigin')}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+                {t('settings.allowedIframeOriginDesc')}
+              </div>
+              <Input
+                style={{ width: '100%' }}
+                placeholder={t('settings.iframeOriginPlaceholder')}
+                value={config?.allowed_iframe_origin || '*'}
+                onChange={(e) => handleUpdateIframeOriginLocal(e.target.value)}
+                onBlur={handleSaveIframeOrigin}
+              />
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>
+                {t('settings.iframeOriginHint')}
+              </div>
             </div>
           </Space>
         </Card>

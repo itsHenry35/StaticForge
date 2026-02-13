@@ -159,4 +159,5 @@ export interface ConfigData {
   allow_register: boolean;
   oauth: OAuthConfigFull[];
   replacements: ReplacementRule[];
+  allowed_iframe_origin: string;
 }
