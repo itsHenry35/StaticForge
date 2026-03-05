@@ -175,6 +175,29 @@ const ShareContent: React.FC<{ siteUrl: string }> = ({ siteUrl }) => {
   );
 };
 
+// ── Authenticated iframe preview tab ─────────────────────────────────────────
+
+const PreviewTabContent: React.FC<{ projectId: number; refreshKey: number }> = ({ projectId, refreshKey }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const token = localStorage.getItem('token') ?? '';
+  const src = `/api/projects/${projectId}/preview/?token=${encodeURIComponent(token)}`;
+
+  useEffect(() => {
+    if (refreshKey > 0) {
+      iframeRef.current?.contentWindow?.location.reload();
+    }
+  }, [refreshKey]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      src={src}
+      style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+      title="Preview"
+    />
+  );
+};
+
 // ── Per-tab Monaco editor (uncontrolled — defaultValue avoids cursor jumps) ──
 
 const EditorTabContent: React.FC<{
@@ -238,6 +261,7 @@ const ProjectEditorInner: React.FC = () => {
   const [, forceUpdate] = useState(0);
   const initialOpenDoneRef = useRef(false);
   const skipDirtyCheckRef = useRef(false);
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
 
   loader.config({ monaco });
 
@@ -298,12 +322,17 @@ const ProjectEditorInner: React.FC = () => {
     return () => { document.getElementById(id)?.remove(); };
   }, []);
 
-  // Auto-open index.html on first load
+  // Auto-open index.html + preview on first load
   useEffect(() => {
     if (files.length > 0 && !initialOpenDoneRef.current) {
       initialOpenDoneRef.current = true;
       const indexFile = files.find(f => f.name === 'index.html' && (f.path === 'index.html' || f.path === '/index.html'));
-      if (indexFile) openFileRef.current(indexFile);
+      if (indexFile) {
+        // Wait for openFile to finish (tab + tabset created) before splitting preview to the right
+        openFileRef.current(indexFile).then(() => {
+          openPreviewTabRef.current();
+        });
+      }
     }
   }, [files]);
 
@@ -360,6 +389,7 @@ const ProjectEditorInner: React.FC = () => {
     const response = await apiService.updateFileByPath(projectId, filePath, data.content);
     handleRespWithoutNotify(response, () => {
       setOpenFiles(prev => ({ ...prev, [filePath]: { ...prev[filePath], dirty: false } }));
+      setPreviewRefreshKey(k => k + 1);
     });
   }, [projectId]);
 
@@ -371,9 +401,13 @@ const ProjectEditorInner: React.FC = () => {
     }));
   }, []);
 
-  // Factory: render editor for each FlexLayout tab
+  // Factory: render editor or preview for each FlexLayout tab
   const factory = useCallback((node: TabNode) => {
-    const { filePath } = (node.getConfig() ?? {}) as { filePath?: string };
+    const cfg = (node.getConfig() ?? {}) as { filePath?: string; type?: string };
+    if (cfg.type === 'preview') {
+      return <PreviewTabContent key="preview" projectId={projectId} refreshKey={previewRefreshKey} />;
+    }
+    const { filePath } = cfg;
     if (!filePath) return <div style={{ padding: 16, color: '#969696' }}>Unknown tab</div>;
     const data = openFilesRef.current[filePath];
     if (!data) return <div style={{ padding: 16, color: '#969696' }}>Loading…</div>;
@@ -386,7 +420,48 @@ const ProjectEditorInner: React.FC = () => {
         onContentChange={handleContentChange}
       />
     );
-  }, [handleContentChange]);
+  }, [handleContentChange, projectId, previewRefreshKey]);
+
+  // Open (or focus) the single preview tab, always splitting to the right
+  const openPreviewTab = useCallback(() => {
+    // If preview tab already exists, just focus it
+    let existingId: string | null = null;
+    flexModel.visitNodes((node) => {
+      if (node.getType() === 'tab') {
+        const cfg = (node as TabNode).getConfig() as { type?: string };
+        if (cfg?.type === 'preview') existingId = node.getId();
+      }
+    });
+    if (existingId) {
+      flexModel.doAction(Actions.selectTab(existingId));
+      forceUpdate(n => n + 1);
+      return;
+    }
+
+    // Find a tabset to anchor the split from (prefer active, fallback to any)
+    let anchorId: string | null = null;
+    const active = flexModel.getActiveTabset();
+    if (active) {
+      anchorId = active.getId();
+    } else {
+      flexModel.visitNodes((node) => {
+        if (node.getType() === 'tabset' && !anchorId) anchorId = node.getId();
+      });
+    }
+
+    const tabDef = { type: 'tab', name: t('editor.preview'), component: 'preview', config: { type: 'preview' } };
+
+    if (anchorId) {
+      // Split right of the anchor tabset
+      flexModel.doAction(Actions.addNode(tabDef, anchorId, DockLocation.RIGHT, -1));
+    } else {
+      // No tabsets at all — add to the root row
+      flexModel.doAction(Actions.addNode(tabDef, flexModel.getRoot().getId(), DockLocation.CENTER, -1));
+    }
+    forceUpdate(n => n + 1);
+  }, [flexModel, t]);
+  const openPreviewTabRef = useRef(openPreviewTab);
+  openPreviewTabRef.current = openPreviewTab;
 
   // Show a dot on dirty tabs; show parent folder when filename is ambiguous
   const onRenderTab = useCallback((node: TabNode, renderValues: ITabRenderValues) => {
@@ -936,6 +1011,13 @@ const ProjectEditorInner: React.FC = () => {
                   icon={<CloudUploadOutlined />}
                   onClick={() => folderInputRef.current?.click()}
                   loading={uploadingFolder}
+                />
+              </Tooltip>
+              <Tooltip title={t('editor.preview')} placement="bottom">
+                <Button
+                  type="text"
+                  icon={<EyeOutlined />}
+                  onClick={openPreviewTab}
                 />
               </Tooltip>
             </div>

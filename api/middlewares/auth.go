@@ -73,6 +73,53 @@ func AdminMiddleware() gin.HandlerFunc {
 	}
 }
 
+// PreviewAuthMiddleware accepts JWT token from Authorization header OR ?token= query param
+// This is needed because iframes cannot send custom headers.
+func PreviewAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := ""
+		if authHeader := c.GetHeader("Authorization"); authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				token = parts[1]
+			}
+		}
+		if token == "" {
+			token = c.Query("token")
+		}
+		if token == "" {
+			utils.Unauthorized(c, utils.MsgUnauthorized)
+			c.Abort()
+			return
+		}
+
+		claims, err := utils.ParseToken(token)
+		if err != nil {
+			utils.Unauthorized(c, utils.MsgInvalidToken)
+			c.Abort()
+			return
+		}
+
+		var user models.User
+		if err := database.DB.First(&user, claims.UserID).Error; err != nil {
+			utils.Unauthorized(c, utils.MsgUserNotFound)
+			c.Abort()
+			return
+		}
+		if !user.IsActive {
+			utils.Forbidden(c, utils.MsgAccountDisabled)
+			c.Abort()
+			return
+		}
+
+		c.Set("user_id", user.ID)
+		c.Set("username", user.Username)
+		c.Set("is_admin", user.IsAdmin())
+		c.Set("user", user)
+		c.Next()
+	}
+}
+
 // OptionalAuthMiddleware validates JWT token if present, but doesn't require it
 func OptionalAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {

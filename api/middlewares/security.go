@@ -12,8 +12,10 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cfg := config.GetConfig()
 
-		// For static sites (/s/), apply CSP to allow full functionality but protect API
-		if strings.HasPrefix(c.Request.URL.Path, "/s/") {
+		// For static sites (/s/) and authenticated preview (/api/*/preview), allow iframe embedding
+		isStaticOrPreview := strings.HasPrefix(c.Request.URL.Path, "/s/") ||
+			strings.Contains(c.Request.URL.Path, "/preview")
+		if isStaticOrPreview {
 			// Allow scripts, images, fonts, frames, etc. from anywhere
 			// But block ALL network connections (fetch/XHR/WebSocket) and form submissions
 			// This prevents data exfiltration via JavaScript

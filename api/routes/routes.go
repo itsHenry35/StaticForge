@@ -100,6 +100,14 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 		}
 	}
 
+	// Authenticated preview (no publish check, token via header or ?token= for iframes)
+	preview := api.Group("")
+	preview.Use(middlewares.PreviewAuthMiddleware())
+	{
+		preview.GET("/projects/:id/preview", handlers.PreviewProject)
+		preview.GET("/projects/:id/preview/*filepath", handlers.PreviewProject)
+	}
+
 	// Static website serving (automatically records visits)
 	r.GET("/s/:name", handlers.ServeStaticSite)
 	r.GET("/s/:name/*filepath", handlers.ServeStaticSite)
