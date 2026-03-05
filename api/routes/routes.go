@@ -110,14 +110,17 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 		panic(err)
 	}
 
-	// Serve assets directory
+	// Serve assets directory (hashed filenames, long-lived immutable cache)
 	assetsFS, err := fs.Sub(buildFS, "assets")
 	if err != nil {
 		panic(err)
 	}
-	r.StaticFS("/assets", http.FS(assetsFS))
+	r.GET("/assets/*filepath", func(c *gin.Context) {
+		c.Header("Cache-Control", "public, max-age=604800, immutable")
+		http.StripPrefix("/assets/", http.FileServer(http.FS(assetsFS))).ServeHTTP(c.Writer, c.Request)
+	})
 
-	// Root static files
+	// Root static files (short-lived cache)
 	rootStaticFiles := []string{
 		"robots.txt",
 		"favicon.svg",
@@ -152,6 +155,7 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 				contentType = "image/x-icon"
 			}
 
+			c.Header("Cache-Control", "public, max-age=86400")
 			c.Data(http.StatusOK, contentType, data)
 		})
 	}
@@ -170,6 +174,7 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 			c.Status(http.StatusNotFound)
 			return
 		}
+		c.Header("Cache-Control", "no-cache")
 		c.Data(http.StatusOK, "text/html; charset=utf-8", data)
 	})
 }
