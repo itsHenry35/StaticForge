@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/itsHenry35/StaticForge/api/handlers"
 	"github.com/itsHenry35/StaticForge/api/middlewares"
@@ -14,6 +15,7 @@ import (
 // SetupRoutes sets up all application routes
 func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 	// Apply global middleware
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LoggerMiddleware())
 	r.Use(middlewares.SecurityHeadersMiddleware())
