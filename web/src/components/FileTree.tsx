@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   FolderOutlined,
   FileOutlined,
@@ -11,6 +11,58 @@ import {
 } from '@ant-design/icons';
 import type { File as FileType } from '../types';
 import './FileTree.css';
+
+const normalizePath = (path: string) => path.replace(/^\/+/, '').replace(/\/+$/, '');
+
+export type InlineEditState =
+  | { type: 'new-file' | 'new-folder'; parentPath: string }
+  | { type: 'rename'; file: FileType };
+
+const InlineInput: React.FC<{
+  defaultValue: string;
+  icon: React.ReactNode;
+  indent: number;
+  onCommit: (value: string) => void;
+  onCancel: () => void;
+}> = ({ defaultValue, icon, indent, onCommit, onCancel }) => {
+  const committed = useRef(false);
+  return (
+    <div className="file-tree-node file-tree-node--editing" style={{ paddingLeft: `${indent + 8}px` }}>
+      <div className="file-tree-node-content">
+        <span className="file-tree-expand-icon-placeholder" />
+        <span className="file-tree-icon">{icon}</span>
+        <input
+          autoFocus
+          className="file-tree-inline-input"
+          defaultValue={defaultValue}
+          onFocus={(e) => defaultValue && e.currentTarget.select()}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const value = e.currentTarget.value.trim();
+              if (!value) return;
+              committed.current = true;
+              onCommit(value);
+            } else if (e.key === 'Escape') {
+              committed.current = true;
+              onCancel();
+            }
+          }}
+          onBlur={(e) => {
+            if (committed.current) return;
+            const value = e.currentTarget.value.trim();
+            if (value) {
+              committed.current = true;
+              onCommit(value);
+            } else {
+              onCancel();
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
+};
 
 interface FileTreeNode {
   key: string;
@@ -31,6 +83,10 @@ interface FileTreeProps {
   onDragEnd?: (draggedFile: FileType, targetFile: FileType, dropToGap: boolean) => void;
   onFileDrop?: (files: File[], targetFolder: FileType | null) => void;
   renderActions?: (file: FileType) => React.ReactNode;
+  inlineEditState?: InlineEditState | null;
+  onInlineEditStateChange?: (state: InlineEditState | null) => void;
+  onInlineCreate?: (name: string, parentPath: string, isFolder: boolean) => void;
+  onInlineRename?: (file: FileType, newName: string) => void;
 }
 
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -42,6 +98,10 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onDragEnd,
   onFileDrop,
   renderActions,
+  inlineEditState = null,
+  onInlineEditStateChange,
+  onInlineCreate,
+  onInlineRename,
 }) => {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [draggedNode, setDraggedNode] = useState<FileTreeNode | null>(null);
@@ -51,8 +111,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const buildTree = useCallback((fileList: FileType[]): FileTreeNode[] => {
     const tree: FileTreeNode[] = [];
     const pathMap: Record<string, FileTreeNode> = {};
-
-    const normalizePath = (path: string) => path.replace(/^\/+/, '').replace(/\/+$/, '');
 
     // Sort files: folders first, then alphabetically
     const sortedFiles = [...fileList].sort((a, b) => {
@@ -174,6 +232,17 @@ export const FileTree: React.FC<FileTreeProps> = ({
     setExpandedKeys(new Set(allFolderKeys));
   }, [files]);
 
+  // Auto-expand parent folder when creating a new item inline
+  useEffect(() => {
+    if (!inlineEditState || inlineEditState.type === 'rename') return;
+    const parentPath = inlineEditState.parentPath;
+    if (parentPath === '/' || !parentPath) return;
+    const folder = files.find(f => f.is_folder && normalizePath(f.path) === normalizePath(parentPath));
+    if (folder) {
+      setExpandedKeys(prev => new Set([...prev, folder.path]));
+    }
+  }, [inlineEditState, files]);
+
   const toggleExpand = (key: string) => {
     setExpandedKeys(prev => {
       const newSet = new Set(prev);
@@ -187,6 +256,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   };
 
   const handleSelect = (node: FileTreeNode) => {
+    if (inlineEditState?.type === 'rename' && inlineEditState.file.path === node.fileData.path) return;
     if (node.isFolder) {
       toggleExpand(node.key);
     }
@@ -286,14 +356,35 @@ export const FileTree: React.FC<FileTreeProps> = ({
     setDropTarget(null);
   };
 
+  const renderNewItemGhost = (parentPath: string, level: number) => {
+    if (!inlineEditState || inlineEditState.type === 'rename') return null;
+    if (normalizePath(inlineEditState.parentPath) !== normalizePath(parentPath)) return null;
+    const isFolder = inlineEditState.type === 'new-folder';
+    return (
+      <InlineInput
+        key="__new-item__"
+        defaultValue=""
+        icon={isFolder ? <FolderOutlined /> : <FileOutlined />}
+        indent={level * 16}
+        onCommit={(name) => {
+          onInlineCreate?.(name, inlineEditState.parentPath, isFolder);
+          onInlineEditStateChange?.(null);
+        }}
+        onCancel={() => onInlineEditStateChange?.(null)}
+      />
+    );
+  };
+
   const renderTreeNode = (node: FileTreeNode): React.ReactNode => {
     const isExpanded = expandedKeys.has(node.key);
     const isFileSelected = !node.isFolder && selectedFilePath === node.key;
     const isFolderSelected = node.isFolder && selectedFolderPath === node.key;
     const isDragging = draggedNode?.key === node.key;
     const isDropTarget = dropTarget?.node.key === node.key;
+    const isRenaming = inlineEditState?.type === 'rename' && inlineEditState.file.path === node.fileData.path;
 
     const indent = node.level * 16;
+    const ghost = node.isFolder && isExpanded ? renderNewItemGhost(node.path, node.level + 1) : null;
 
     return (
       <div key={node.key}>
@@ -304,7 +395,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           style={{ paddingLeft: `${indent + 8}px` }}
           onClick={() => handleSelect(node)}
           onContextMenu={(e) => handleContextMenu(node, e)}
-          draggable
+          draggable={!isRenaming}
           onDragStart={(e) => handleDragStart(node, e)}
           onDragOver={(e) => handleDragOver(node, e)}
           onDragLeave={handleDragLeave}
@@ -331,17 +422,46 @@ export const FileTree: React.FC<FileTreeProps> = ({
                 getFileIcon(node.name)
               )}
             </span>
-            <span className="file-tree-label">{node.name}</span>
+            {isRenaming ? (
+              <input
+                autoFocus
+                className="file-tree-inline-input"
+                defaultValue={node.name}
+                onFocus={(e) => e.currentTarget.select()}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const value = e.currentTarget.value.trim();
+                    if (!value) return;
+                    e.currentTarget.dataset.committed = 'true';
+                    if (value !== node.name) onInlineRename?.(node.fileData, value);
+                    onInlineEditStateChange?.(null);
+                  } else if (e.key === 'Escape') {
+                    e.currentTarget.dataset.committed = 'true';
+                    onInlineEditStateChange?.(null);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.currentTarget.dataset.committed === 'true') return;
+                  const value = e.currentTarget.value.trim();
+                  if (value && value !== node.name) onInlineRename?.(node.fileData, value);
+                  onInlineEditStateChange?.(null);
+                }}
+              />
+            ) : (
+              <span className="file-tree-label">{node.name}</span>
+            )}
           </div>
-          {renderActions && (
+          {renderActions && !isRenaming && (
             <div className="file-tree-actions" onClick={(e) => e.stopPropagation()}>
               {renderActions(node.fileData)}
             </div>
           )}
         </div>
-        {node.isFolder && isExpanded && node.children && node.children.length > 0 && (
+        {node.isFolder && isExpanded && ((node.children?.length ?? 0) > 0 || ghost) && (
           <div className="file-tree-children">
-            {node.children.map((child) => renderTreeNode(child))}
+            {ghost}
+            {node.children?.map((child) => renderTreeNode(child))}
           </div>
         )}
       </div>
@@ -372,6 +492,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
       onDragOver={handleTreeDragOver}
       onDrop={handleTreeDrop}
     >
+      {renderNewItemGhost('/', 0)}
       {treeData.map((node) => renderTreeNode(node))}
     </div>
   );

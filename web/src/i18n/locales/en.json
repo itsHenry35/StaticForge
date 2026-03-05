@@ -230,6 +230,8 @@
     "folder": "Folder",
     "newFile": "New File",
     "newFolder": "New Folder",
+    "uploadFile": "Upload File",
+    "uploadFolder": "Upload Folder",
     "createNewFile": "Create New File",
     "createFolder": "Create Folder",
     "renameFile": "Rename File",
@@ -269,7 +271,18 @@
     "uploadedFilesSuccess": "Successfully uploaded {{count}} files",
     "uploadedFilesMixed": "Uploaded {{success}} files, {{error}} failed",
     "selectFileToEdit": "Select a file to start editing",
-    "deleteFileConfirm": "Delete file?"
+    "deleteFileConfirm": "Delete file?",
+    "unsavedChanges": "Unsaved Changes",
+    "unsavedChangesDesc": "\"{{name}}\" has unsaved changes.",
+    "saveAndClose": "Save & Close",
+    "discardChanges": "Discard",
+    "open": "Open",
+    "share": "Share",
+    "shareTitle": "Share Site",
+    "siteUrl": "Site URL",
+    "embedCode": "Embed Code",
+    "copyCode": "Copy Code",
+    "urlCopied": "URL copied"
   },
 
   "profile": {

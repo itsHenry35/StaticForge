@@ -17,6 +17,10 @@ import {
   Col,
   Statistic,
   Menu,
+  Tooltip,
+  ConfigProvider,
+  theme as antTheme,
+  App,
 } from 'antd';
 import {
   PlusOutlined,
@@ -31,6 +35,10 @@ import {
   FolderAddOutlined,
   FileOutlined,
   FileAddOutlined,
+  CloudUploadOutlined,
+  ShareAltOutlined,
+  ExportOutlined,
+  CopyOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import * as monaco from 'monaco-editor';
@@ -39,28 +47,178 @@ import { apiService } from '../services/api';
 import type { Project, File as FileType, Analytics } from '../types';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
 import { FileTree } from '../components/FileTree';
+import type { InlineEditState } from '../components/FileTree';
+import {
+  Layout as FlexLayoutComponent,
+  Model as FlexModel,
+  TabNode,
+  Actions,
+  DockLocation,
+} from 'flexlayout-react';
+import type { IJsonModel, ITabRenderValues, Action } from 'flexlayout-react';
+import 'flexlayout-react/style/light.css';
+import { QRCodeSVG } from 'qrcode.react';
 
-const { Sider, Content, Header } = Layout;
+const { Sider, Content } = Layout;
+
+// ── FlexLayout types & config ───────────────────────────────────────────────
+
+interface OpenFileData {
+  file: FileType;
+  content: string;
+  dirty: boolean;
+}
+
+const defaultLayout: IJsonModel = {
+  global: {
+    tabEnableClose: true,
+    tabEnableRename: false,
+    tabSetMinWidth: 100,
+    tabSetMinHeight: 50,
+    splitterSize: 4,
+  },
+  borders: [],
+  layout: {
+    type: 'row',
+    children: [{ type: 'tabset', id: 'main', weight: 100, children: [] }],
+  },
+};
+
+// Dark tab bar that blends with vs-dark Monaco
+const FLEX_CSS = `
+  .flexlayout__layout { background: #1e1e1e; }
+  .flexlayout__tabset { background: #1e1e1e; }
+  .flexlayout__tabset_tabbar_outer {
+    background: #2d2d2d;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .flexlayout__tab_button {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #969696;
+    transition: color 0.15s;
+  }
+  .flexlayout__tab_button:hover { color: #ccc; background: rgba(255,255,255,0.06); }
+  .flexlayout__tab_button--selected {
+    background: #1e1e1e;
+    color: #ccc;
+    border-top: 1px solid #3B82F6;
+  }
+  .flexlayout__tab_button_trailing {
+    opacity: 0.35;
+    width: 14px; height: 14px;
+    margin-left: 6px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 2px;
+    transition: opacity 0.15s, background 0.15s;
+  }
+  .flexlayout__tab_button:hover .flexlayout__tab_button_trailing,
+  .flexlayout__tab_button--selected .flexlayout__tab_button_trailing { opacity: 0.7; }
+  .flexlayout__tab_button_trailing:hover { background: rgba(255,255,255,0.15) !important; opacity: 1 !important; }
+  .flexlayout__tab { background: #1e1e1e; overflow: hidden; }
+  .flexlayout__splitter { background: #3a3a3a; }
+  .flexlayout__splitter:hover, .flexlayout__splitter_drag { background: #3B82F6; }
+  .flexlayout__outline_rect { border: 2px solid #3B82F6; border-radius: 4px; }
+  .flexlayout__drag_rect { background: rgba(59,130,246,0.1); border: 2px dashed #3B82F6; border-radius: 4px; }
+  .flexlayout__popup_menu {
+    background: #2d2d2d; border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    border: 1px solid #444; padding: 4px; font-size: 13px;
+  }
+  .flexlayout__popup_menu_item { padding: 6px 12px; border-radius: 4px; color: #ccc; cursor: pointer; }
+  .flexlayout__popup_menu_item:hover { background: rgba(59,130,246,0.25); color: #fff; }
+`;
+
+// ── Reusable share content (URL + iframe + QR) ───────────────────────────────
+
+const ShareContent: React.FC<{ siteUrl: string }> = ({ siteUrl }) => {
+  const { t } = useTranslation();
+  const iframeCode = `<iframe src="${siteUrl}" width="100%" height="600" frameborder="0"></iframe>`;
+  const copy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    message.success(t(key));
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ fontSize: 12, color: '#969696', marginBottom: 6 }}>{t('editor.siteUrl')}</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Input value={siteUrl} readOnly style={{ flex: 1 }} onClick={(e) => e.currentTarget.select()} />
+          <Button icon={<CopyOutlined />} onClick={() => copy(siteUrl, 'editor.urlCopied')} />
+        </div>
+      </div>
+      <div>
+        <div style={{ fontSize: 12, color: '#969696', marginBottom: 6 }}>{t('editor.embedCode')}</div>
+        <Input.TextArea
+          value={iframeCode}
+          readOnly
+          autoSize={{ minRows: 2, maxRows: 3 }}
+          style={{ fontFamily: 'monospace', fontSize: 12 }}
+          onClick={(e) => e.currentTarget.select()}
+        />
+        <Button
+          size="small"
+          icon={<CopyOutlined />}
+          style={{ marginTop: 6 }}
+          onClick={() => copy(iframeCode, 'editor.iframeCopied')}
+        >
+          {t('editor.copyCode')}
+        </Button>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
+        <div style={{ background: '#fff', padding: 8, borderRadius: 8 }}>
+          <QRCodeSVG value={siteUrl} size={148} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Per-tab Monaco editor (uncontrolled — defaultValue avoids cursor jumps) ──
+
+const EditorTabContent: React.FC<{
+  filePath: string;
+  initialContent: string;
+  language: string;
+  onContentChange: (filePath: string, content: string) => void;
+}> = ({ filePath, initialContent, language, onContentChange }) => {
+  return (
+    <Editor
+      height="100%"
+      language={language}
+      defaultValue={initialContent}
+      onChange={(value) => onContentChange(filePath, value ?? '')}
+      theme="vs-dark"
+      options={{
+        minimap: { enabled: true },
+        fontSize: 14,
+        wordWrap: 'on',
+        automaticLayout: true,
+        fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+        lineHeight: 1.6,
+        padding: { top: 16, bottom: 16 },
+      }}
+    />
+  );
+};
 const { Text } = Typography;
 
-export const ProjectEditor: React.FC = () => {
+const ProjectEditorInner: React.FC = () => {
   const { t } = useTranslation();
+  const { modal } = App.useApp();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [files, setFiles] = useState<FileType[]>([]);
-  const [selectedFile, setSelectedFile] = useState<FileType | null>(null);
-  const [editorContent, setEditorContent] = useState('');
   const [, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [analyticsVisible, setAnalyticsVisible] = useState(false);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [folderModalVisible, setFolderModalVisible] = useState(false);
-  const [fileModalVisible, setFileModalVisible] = useState(false);
-  const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [publishModalVisible, setPublishModalVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<FileType | null>(null);
+  const [inlineEditState, setInlineEditState] = useState<InlineEditState | null>(null);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   const [contextMenuNode, setContextMenuNode] = useState<FileType | null>(null);
@@ -68,18 +226,24 @@ export const ProjectEditor: React.FC = () => {
   const [siderWidth, setSiderWidth] = useState(280);
   const [isResizing, setIsResizing] = useState(false);
   const [settingsForm] = Form.useForm();
-  const [folderForm] = Form.useForm();
-  const [fileForm] = Form.useForm();
-  const [renameForm] = Form.useForm();
   const [publishForm] = Form.useForm();
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const folderInputRef = useRef<HTMLInputElement>(null);
+
+  // FlexLayout state
+  const [openFiles, setOpenFiles] = useState<Record<string, OpenFileData>>({});
+  const openFilesRef = useRef<Record<string, OpenFileData>>({});
+  openFilesRef.current = openFiles;
+  const [flexModel] = useState<FlexModel>(() => FlexModel.fromJson(defaultLayout));
+  const flexLayoutRef = useRef<FlexLayoutComponent>(null);
+  const [, forceUpdate] = useState(0);
+  const initialOpenDoneRef = useRef(false);
+  const skipDirtyCheckRef = useRef(false);
 
   loader.config({ monaco });
 
   const projectId = parseInt(id || '0');
 
-  const fetchProject = async () => {
+  const fetchProject = async (onFilesLoaded?: (files: FileType[]) => void) => {
     const projectResponse = await apiService.getProject(projectId);
     handleRespWithoutNotify(
       projectResponse,
@@ -105,6 +269,7 @@ export const ProjectEditor: React.FC = () => {
       (filesData) => {
         setFiles(filesData);
         setLoading(false);
+        onFilesLoaded?.(filesData);
       }
     );
   };
@@ -121,86 +286,251 @@ export const ProjectEditor: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
+  // Inject FlexLayout dark theme CSS
   useEffect(() => {
-    if (files.length > 0 && !selectedFile) {
-      // Auto-select index.html if no file is selected
-      const indexFile = files.find(f => f.name === 'index.html' && (f.path === 'index.html' || f.path === '/index.html'));
-      if (indexFile) {
-        handleFileSelect(indexFile);
-      }
+    const id = 'editor-flexlayout-style';
+    if (!document.getElementById(id)) {
+      const el = document.createElement('style');
+      el.id = id;
+      el.textContent = FLEX_CSS;
+      document.head.appendChild(el);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { document.getElementById(id)?.remove(); };
+  }, []);
+
+  // Auto-open index.html on first load
+  useEffect(() => {
+    if (files.length > 0 && !initialOpenDoneRef.current) {
+      initialOpenDoneRef.current = true;
+      const indexFile = files.find(f => f.name === 'index.html' && (f.path === 'index.html' || f.path === '/index.html'));
+      if (indexFile) openFileRef.current(indexFile);
+    }
   }, [files]);
 
-  const handleFileSelect = async (file: FileType) => {
+  // Open a file: focus existing tab or fetch content and create new tab
+  const openFile = useCallback(async (file: FileType) => {
     if (file.is_folder) return;
 
-    // Save current file before switching
-    if (selectedFile && editorContent !== selectedFile.content) {
-      await handleSave();
+    // Check if already open → focus its tab
+    let existingTabId: string | null = null;
+    flexModel.visitNodes((node) => {
+      if (node.getType() === 'tab') {
+        const cfg = (node as TabNode).getConfig() as { filePath?: string };
+        if (cfg?.filePath === file.path) existingTabId = node.getId();
+      }
+    });
+    if (existingTabId) {
+      flexModel.doAction(Actions.selectTab(existingTabId));
+      forceUpdate(n => n + 1);
+      return;
     }
 
+    // Fetch content then open new tab
     const response = await apiService.getFileByPath(projectId, file.path);
     handleRespWithoutNotify(response, (fileData) => {
-      setSelectedFile(fileData);
-      setEditorContent(fileData.content || '');
+      const entry: OpenFileData = { file: fileData, content: fileData.content ?? '', dirty: false };
+      // Update ref immediately so factory sees it before re-render
+      openFilesRef.current = { ...openFilesRef.current, [file.path]: entry };
+      setOpenFiles(openFilesRef.current);
+
+      // Find active tabset
+      let tabSetId = 'main';
+      const active = flexModel.getActiveTabset();
+      if (active) tabSetId = active.getId();
+      else flexModel.visitNodes((n) => { if (n.getType() === 'tabset' && tabSetId === 'main') tabSetId = n.getId(); });
+
+      flexModel.doAction(Actions.addNode(
+        { type: 'tab', name: file.name, component: 'editor', config: { filePath: file.path } },
+        tabSetId,
+        DockLocation.CENTER,
+        -1,
+      ));
+      forceUpdate(n => n + 1);
     });
-  };
+  }, [flexModel, projectId]);
 
-  const handleEditorChange = (value: string | undefined) => {
-    setEditorContent(value || '');
+  // Keep a stable ref so useEffect can call openFile without stale closure
+  const openFileRef = useRef(openFile);
+  openFileRef.current = openFile;
 
-    // Auto-save after 2 seconds of inactivity
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    saveTimeoutRef.current = setTimeout(() => {
-      handleSave();
-    }, 2000);
-  };
+  // Save one file by path
+  const saveFile = useCallback(async (filePath: string) => {
+    const data = openFilesRef.current[filePath];
+    if (!data?.dirty) return;
+    const response = await apiService.updateFileByPath(projectId, filePath, data.content);
+    handleRespWithoutNotify(response, () => {
+      setOpenFiles(prev => ({ ...prev, [filePath]: { ...prev[filePath], dirty: false } }));
+    });
+  }, [projectId]);
 
-  const handleSave = useCallback(async () => {
-    if (!selectedFile) return;
+  // Stable callback for editor onChange (avoids re-mounting Monaco)
+  const handleContentChange = useCallback((filePath: string, content: string) => {
+    setOpenFiles(prev => ({
+      ...prev,
+      [filePath]: { ...prev[filePath], content, dirty: true },
+    }));
+  }, []);
 
-    setSaving(true);
-    const response = await apiService.updateFileByPath(projectId, selectedFile.path, editorContent);
-    handleRespWithNotifySuccess(
-      response,
-      () => {
-        setFiles((prevFiles) => prevFiles.map((f) =>
-          f.path === selectedFile.path ? { ...f, content: editorContent } : f
-        ));
-        setSaving(false);
-      },
-      () => {
-        setSaving(false);
-      }
+  // Factory: render editor for each FlexLayout tab
+  const factory = useCallback((node: TabNode) => {
+    const { filePath } = (node.getConfig() ?? {}) as { filePath?: string };
+    if (!filePath) return <div style={{ padding: 16, color: '#969696' }}>Unknown tab</div>;
+    const data = openFilesRef.current[filePath];
+    if (!data) return <div style={{ padding: 16, color: '#969696' }}>Loading…</div>;
+    return (
+      <EditorTabContent
+        key={filePath}
+        filePath={filePath}
+        initialContent={data.content}
+        language={getLanguageFromFilename(data.file.name)}
+        onContentChange={handleContentChange}
+      />
     );
-  }, [editorContent, projectId, selectedFile]);
+  }, [handleContentChange]);
 
+  // Show a dot on dirty tabs; show parent folder when filename is ambiguous
+  const onRenderTab = useCallback((node: TabNode, renderValues: ITabRenderValues) => {
+    const { filePath } = (node.getConfig() ?? {}) as { filePath?: string };
+    if (!filePath) return;
+    const data = openFilesRef.current[filePath];
+    if (!data) return;
+
+    if (data.dirty) {
+      renderValues.buttons.push(
+        <div key="dirty" style={{ width: 7, height: 7, borderRadius: '50%', background: '#6b9ef4', margin: '0 3px', flexShrink: 0, alignSelf: 'center' }} />
+      );
+    }
+
+    const fileName = data.file.name;
+    const hasDuplicate = Object.entries(openFilesRef.current).some(
+      ([fp, d]) => fp !== filePath && d.file.name === fileName
+    );
+    if (hasDuplicate) {
+      const lastSlash = filePath.lastIndexOf('/');
+      const parentPath = lastSlash > 0 ? filePath.substring(0, lastSlash) : '';
+      const parentLabel = parentPath.includes('/')
+        ? parentPath.substring(parentPath.lastIndexOf('/') + 1)
+        : parentPath || '/';
+      renderValues.content = (
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+          <span>{fileName}</span>
+          <span style={{ fontSize: 11, color: '#6b6b6b', fontWeight: 400 }}>{parentLabel}</span>
+        </span>
+      );
+    }
+  }, []);
+
+  // Sync openFiles when tabs are closed
+  const handleModelChange = useCallback(() => {
+    const openPaths = new Set<string>();
+    flexModel.visitNodes((node) => {
+      if (node.getType() === 'tab') {
+        const cfg = (node as TabNode).getConfig() as { filePath?: string };
+        if (cfg?.filePath) openPaths.add(cfg.filePath);
+      }
+    });
+
+    const closedPaths = Object.keys(openFilesRef.current).filter(fp => !openPaths.has(fp));
+    if (closedPaths.length > 0) {
+      setOpenFiles(prev => {
+        const next = { ...prev };
+        for (const fp of closedPaths) delete next[fp];
+        return next;
+      });
+    }
+    forceUpdate(n => n + 1);
+  }, [flexModel]);
+
+  // Intercept tab close — prompt if file is dirty
+  const handleAction = useCallback((action: Action): Action | undefined => {
+    if (action.type === Actions.DELETE_TAB && !skipDirtyCheckRef.current) {
+      const nodeId = (action as unknown as { data: { node: string } }).data.node;
+      const node = flexModel.getNodeById(nodeId) as TabNode | null;
+      if (node) {
+        const { filePath } = (node.getConfig() ?? {}) as { filePath?: string };
+        if (filePath && openFilesRef.current[filePath]?.dirty) {
+          const fileName = openFilesRef.current[filePath].file.name;
+
+          const instance = modal.confirm({
+            rootClassName: 'editor-dark-portal',
+            title: t('editor.unsavedChanges'),
+            icon: null,
+            closable: true,
+            maskClosable: false,
+            footer: null,
+            content: (
+              <div>
+                <p style={{ marginBottom: 16 }}>{t('editor.unsavedChangesDesc', { name: fileName })}</p>
+                <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <Button onClick={() => instance.destroy()}>{t('editor.cancel')}</Button>
+                  <Button danger onClick={() => {
+                    instance.destroy();
+                    skipDirtyCheckRef.current = true;
+                    flexModel.doAction(Actions.deleteTab(nodeId));
+                    skipDirtyCheckRef.current = false;
+                  }}>{t('editor.discardChanges')}</Button>
+                  <Button type="primary" onClick={async () => {
+                    await saveFile(filePath);
+                    instance.destroy();
+                    skipDirtyCheckRef.current = true;
+                    flexModel.doAction(Actions.deleteTab(nodeId));
+                    skipDirtyCheckRef.current = false;
+                  }}>{t('editor.saveAndClose')}</Button>
+                </Space>
+              </div>
+            ),
+          });
+          return undefined; // cancel the action
+        }
+      }
+    }
+    return action;
+  }, [flexModel, saveFile, t]);
+
+  // Block browser refresh / back-forward when there are unsaved changes
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (Object.values(openFilesRef.current).some(f => f.dirty)) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
+  // Ctrl+S: save the active tab's file
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault();
-        handleSave();
+        const active = flexModel.getActiveTabset();
+        if (!active) return;
+        const tab = active.getSelectedNode() as TabNode | null;
+        if (!tab) return;
+        const { filePath } = (tab.getConfig() ?? {}) as { filePath?: string };
+        if (filePath) saveFile(filePath);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave]);
+  }, [flexModel, saveFile]);
 
   // Get target path for upload/create based on current selection
   const getTargetPath = () => {
-    if (selectedFolder) {
-      // If a folder is selected, use it
-      return selectedFolder.path;
-    } else if (selectedFile) {
-      // If a file is selected, use its parent folder
-      const parentPath = selectedFile.path.substring(0, selectedFile.path.lastIndexOf('/'));
-      return parentPath || '/';
+    if (selectedFolder) return selectedFolder.path;
+    // Use the active tab's file parent
+    const active = flexModel.getActiveTabset();
+    if (active) {
+      const tab = active.getSelectedNode() as TabNode | null;
+      if (tab) {
+        const { filePath } = (tab.getConfig() ?? {}) as { filePath?: string };
+        if (filePath) {
+          const parent = filePath.substring(0, filePath.lastIndexOf('/'));
+          return parent || '/';
+        }
+      }
     }
-    // Default to root
     return '/';
   };
 
@@ -306,32 +636,30 @@ export const ProjectEditor: React.FC = () => {
     }
   };
 
-  const handleCreateFolder = async (values: { name: string }) => {
-    const folderPath = getTargetPath();
-    const response = await apiService.createFolder(projectId, {
-      path: folderPath,
-      name: values.name,
-    });
-    handleRespWithNotifySuccess(response, () => {
-      setFolderModalVisible(false);
-      folderForm.resetFields();
-      fetchProject();
-    });
-  };
+  const handleInlineCreate = async (name: string, parentPath: string, isFolder: boolean) => {
+    const expectedPath = parentPath === '/' ? name : `${parentPath}/${name}`;
 
-  const handleCreateFile = async (values: { name: string }) => {
-    const filePath = getTargetPath();
+    const afterCreate = () => {
+      fetchProject((newFiles) => {
+        const file = newFiles.find(f => f.path === expectedPath || f.path === `/${expectedPath}`);
+        if (!file) return;
+        if (file.is_folder) {
+          setSelectedFolder(file);
+        } else {
+          openFile(file);
+        }
+      });
+    };
 
-    // Create an empty file
-    const blob = new Blob([''], { type: 'text/plain' });
-    const file = new File([blob], values.name, { type: 'text/plain' });
-
-    const response = await apiService.uploadFile(projectId, file, filePath);
-    handleRespWithNotifySuccess(response, () => {
-      setFileModalVisible(false);
-      fileForm.resetFields();
-      fetchProject();
-    });
+    if (isFolder) {
+      const response = await apiService.createFolder(projectId, { path: parentPath, name });
+      handleRespWithNotifySuccess(response, afterCreate);
+    } else {
+      const blob = new Blob([''], { type: 'text/plain' });
+      const file = new File([blob], name);
+      const response = await apiService.uploadFile(projectId, file, parentPath);
+      handleRespWithNotifySuccess(response, afterCreate);
+    }
   };
 
   // Right-click context menu
@@ -350,16 +678,16 @@ export const ProjectEditor: React.FC = () => {
 
     switch (e.key) {
       case 'rename':
-        setSelectedFile(contextMenuNode);
-        renameForm.setFieldsValue({ new_name: contextMenuNode.name });
-        setRenameModalVisible(true);
+        setInlineEditState({ type: 'rename', file: contextMenuNode });
         break;
       case 'delete':
         handleDelete(contextMenuNode);
         break;
       case 'newFolder':
-        setSelectedFolder(contextMenuNode.is_folder ? contextMenuNode : null);
-        setFolderModalVisible(true);
+        setInlineEditState({
+          type: 'new-folder',
+          parentPath: contextMenuNode.is_folder ? contextMenuNode.path : '/',
+        });
         break;
     }
   };
@@ -458,15 +786,9 @@ export const ProjectEditor: React.FC = () => {
     });
   };
 
-  const handleRename = async (values: { new_name: string }) => {
-    if (!selectedFile) return;
-
-    const response = await apiService.renameFileByPath(projectId, selectedFile.path, values.new_name);
-    handleRespWithNotifySuccess(response, () => {
-      setRenameModalVisible(false);
-      renameForm.resetFields();
-      fetchProject();
-    });
+  const handleInlineRename = async (file: FileType, newName: string) => {
+    const response = await apiService.renameFileByPath(projectId, file.path, newName);
+    handleRespWithNotifySuccess(response, () => fetchProject());
   };
 
   const handleDelete = async (file: FileType) => {
@@ -477,10 +799,16 @@ export const ProjectEditor: React.FC = () => {
 
     const response = await apiService.deleteFileByPath(projectId, file.path);
     handleRespWithNotifySuccess(response, () => {
-      if (selectedFile?.path === file.path) {
-        setSelectedFile(null);
-        setEditorContent('');
-      }
+      // Close the tab if open
+      flexModel.visitNodes((node) => {
+        if (node.getType() === 'tab') {
+          const cfg = (node as TabNode).getConfig() as { filePath?: string };
+          if (cfg?.filePath === file.path) {
+            flexModel.doAction(Actions.deleteTab(node.getId()));
+          }
+        }
+      });
+      setOpenFiles(prev => { const n = { ...prev }; delete n[file.path]; return n; });
       fetchProject();
     });
   };
@@ -513,37 +841,7 @@ export const ProjectEditor: React.FC = () => {
       setPublishModalVisible(false);
       publishForm.resetFields();
       await fetchProject();
-
-      // Show iframe code after publishing
-      if (project) {
-        const host = window.location.host;
-        const protocol = window.location.protocol;
-        const iframeCode = `<iframe src="${protocol}//${host}/s/${project.name}" width="100%" height="600" frameborder="0"></iframe>`;
-
-        Modal.success({
-          title: t('editor.projectPublishedSuccess'),
-          width: 600,
-          content: (
-            <div>
-              <p style={{ marginBottom: 16 }}>{t('editor.siteNowLive')}</p>
-              <Input.TextArea
-                value={iframeCode}
-                readOnly
-                autoSize={{ minRows: 3, maxRows: 5 }}
-                style={{ fontFamily: 'monospace', fontSize: 12 }}
-                onClick={(e) => {
-                  e.currentTarget.select();
-                  navigator.clipboard.writeText(iframeCode);
-                  message.success(t('editor.iframeCopied'));
-                }}
-              />
-              <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
-                {t('editor.clickToCopy')}
-              </p>
-            </div>
-          ),
-        });
-      }
+      setShareModalVisible(true);
     });
   };
 
@@ -573,102 +871,74 @@ export const ProjectEditor: React.FC = () => {
 
   return (
     <Layout className="editor-layout">
-      <Header className="editor-header">
-        <Space size={16}>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/projects')} type="text">
+      <Sider width={siderWidth} theme="dark" className="editor-sider" style={{ position: 'relative' }}>
+        {/* Top nav */}
+        <div className="editor-sider__nav">
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate('/projects')}
+            className="editor-sider__back-btn"
+          >
             {t('editor.back')}
           </Button>
-          <div style={{ width: 1, height: 24, background: 'var(--border-color)' }} />
-          <h1 className="editor-header__title">
-            {project?.display_name || project?.name}
-          </h1>
-        </Space>
-        <Space size={12}>
-          {saving && <span className="saving-indicator">{t('editor.saving')}</span>}
-          <Button
-            icon={<SaveOutlined />}
-            onClick={handleSave}
-            disabled={!selectedFile}
-            type="text"
-          >
-            {t('editor.save')}
-          </Button>
-          <Button
-            icon={<BarChartOutlined />}
-            onClick={() => {
-              fetchAnalytics();
-              setAnalyticsVisible(true);
-            }}
-            type="text"
-          >
-            {t('editor.analytics')}
-          </Button>
-          <Button
-            icon={<SettingOutlined />}
-            onClick={() => setSettingsVisible(true)}
-            type="text"
-          >
-            {t('editor.settings')}
-          </Button>
-          <Button
-            type={project?.is_published ? 'default' : 'primary'}
-            onClick={handleTogglePublish}
-          >
-            {project?.is_published ? t('editor.unpublish') : t('editor.publish')}
-          </Button>
-          {project?.is_published && (
+          <div style={{ flex: 1 }} />
+          <Tooltip title={t('editor.save')} placement="bottom">
             <Button
-              type="primary"
-              icon={<EyeOutlined />}
-              href={`/s/${project.name}`}
-              target="_blank"
-            >
-              {t('editor.preview')}
-            </Button>
-          )}
-        </Space>
-      </Header>
+              type="text"
+              icon={<SaveOutlined />}
+              disabled={Object.keys(openFiles).length === 0}
+              onClick={() => {
+                const active = flexModel.getActiveTabset();
+                if (!active) return;
+                const tab = active.getSelectedNode() as TabNode | null;
+                if (!tab) return;
+                const { filePath } = (tab.getConfig() ?? {}) as { filePath?: string };
+                if (filePath) saveFile(filePath);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title={t('editor.analytics')} placement="bottom">
+            <Button type="text" icon={<BarChartOutlined />} onClick={() => { fetchAnalytics(); setAnalyticsVisible(true); }} />
+          </Tooltip>
+          <Tooltip title={t('editor.settings')} placement="bottom">
+            <Button type="text" icon={<SettingOutlined />} onClick={() => setSettingsVisible(true)} />
+          </Tooltip>
+        </div>
 
-      <Layout>
-        <Sider width={siderWidth} theme="light" className="editor-sider" style={{ position: 'relative' }}>
           <div className="editor-sider__header">
-            <Space direction="vertical" style={{ width: '100%' }} size={8}>
-              <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                <Upload beforeUpload={handleUpload} showUploadList={false} style={{ flex: 1 }}>
-                  <Button icon={<UploadOutlined />} style={{ width: '100%' }}>
-                    {t('editor.file')}
-                  </Button>
-                </Upload>
+            <span className="editor-sider__section-label">
+              {project?.display_name || project?.name}
+            </span>
+            <div className="editor-sider__toolbar">
+              <Tooltip title={t('editor.newFile')} placement="bottom">
                 <Button
+                  type="text"
+                  icon={<FileAddOutlined />}
+                  onClick={() => setInlineEditState({ type: 'new-file', parentPath: getTargetPath() })}
+                />
+              </Tooltip>
+              <Tooltip title={t('editor.newFolder')} placement="bottom">
+                <Button
+                  type="text"
                   icon={<FolderAddOutlined />}
+                  onClick={() => setInlineEditState({ type: 'new-folder', parentPath: getTargetPath() })}
+                />
+              </Tooltip>
+              <Tooltip title={t('editor.uploadFile')} placement="bottom">
+                <Upload beforeUpload={handleUpload} showUploadList={false}>
+                  <Button type="text" icon={<UploadOutlined />} />
+                </Upload>
+              </Tooltip>
+              <Tooltip title={t('editor.uploadFolder')} placement="bottom">
+                <Button
+                  type="text"
+                  icon={<CloudUploadOutlined />}
                   onClick={() => folderInputRef.current?.click()}
                   loading={uploadingFolder}
-                  style={{ flex: 1 }}
-                >
-                  {t('editor.folder')}
-                </Button>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                <Button
-                  icon={<FileAddOutlined />}
-                  onClick={() => {
-                    setFileModalVisible(true);
-                  }}
-                  style={{ flex: 1 }}
-                >
-                  {t('editor.newFile')}
-                </Button>
-                <Button
-                  icon={<FolderAddOutlined />}
-                  onClick={() => {
-                    setFolderModalVisible(true);
-                  }}
-                  style={{ flex: 1 }}
-                >
-                  {t('editor.newFolder')}
-                </Button>
-              </div>
-            </Space>
+                />
+              </Tooltip>
+            </div>
             <input
               ref={folderInputRef}
               type="file"
@@ -685,15 +955,18 @@ export const ProjectEditor: React.FC = () => {
           <div className="editor-sider__tree">
             <FileTree
               files={files}
-              selectedFilePath={selectedFile?.path}
+              selectedFilePath={(() => {
+                const active = flexModel.getActiveTabset();
+                if (!active) return undefined;
+                const tab = active.getSelectedNode() as TabNode | null;
+                return (tab?.getConfig() as { filePath?: string } | null)?.filePath;
+              })()}
               selectedFolderPath={selectedFolder?.path}
               onSelect={(file) => {
                 if (file.is_folder) {
-                  // Select folder (don't affect editor or currently editing file)
                   setSelectedFolder(file);
                 } else {
-                  // Select file for editing and clear folder selection
-                  handleFileSelect(file);
+                  openFile(file);
                   setSelectedFolder(null);
                 }
               }}
@@ -704,6 +977,10 @@ export const ProjectEditor: React.FC = () => {
               }}
               onDragEnd={handleDrop}
               onFileDrop={handleFileDrop}
+              inlineEditState={inlineEditState}
+              onInlineEditStateChange={setInlineEditState}
+              onInlineCreate={handleInlineCreate}
+              onInlineRename={handleInlineRename}
               renderActions={(file) =>
                 !file.is_folder && file.name !== 'index.html' ? (
                   <>
@@ -713,13 +990,12 @@ export const ProjectEditor: React.FC = () => {
                       icon={<EditOutlined style={{ fontSize: 12 }} />}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedFile(file);
-                        renameForm.setFieldsValue({ new_name: file.name });
-                        setRenameModalVisible(true);
+                        setInlineEditState({ type: 'rename', file });
                       }}
                       style={{ width: 20, height: 20, padding: 0, minWidth: 20 }}
                     />
                     <Popconfirm
+                      rootClassName="editor-dark-portal"
                       title={t('editor.deleteFileConfirm')}
                       onConfirm={(e) => {
                         e?.stopPropagation();
@@ -740,6 +1016,35 @@ export const ProjectEditor: React.FC = () => {
               }
             />
           </div>
+          {/* Footer */}
+          <div className="editor-sider__footer">
+            <Button
+              type={project?.is_published ? 'default' : 'primary'}
+              size="small"
+              onClick={handleTogglePublish}
+              style={{ flex: 1 }}
+            >
+              {project?.is_published ? t('editor.unpublish') : t('editor.publish')}
+            </Button>
+            {project?.is_published && (<>
+              <Tooltip title={t('editor.open')} placement="top">
+                <Button
+                  size="small"
+                  icon={<ExportOutlined />}
+                  href={`/s/${project.name}`}
+                  target="_blank"
+                />
+              </Tooltip>
+              <Tooltip title={t('editor.share')} placement="top">
+                <Button
+                  size="small"
+                  icon={<ShareAltOutlined />}
+                  onClick={() => setShareModalVisible(true)}
+                />
+              </Tooltip>
+            </>)}
+          </div>
+
           {/* Resize handle */}
           <div
             onMouseDown={handleMouseDown}
@@ -766,22 +1071,15 @@ export const ProjectEditor: React.FC = () => {
         </Sider>
 
         <Content className="editor-content">
-          {selectedFile ? (
-            <Editor
-              height="100%"
-              language={getLanguageFromFilename(selectedFile.name)}
-              value={editorContent}
-              onChange={handleEditorChange}
-              theme="vs-dark"
-              options={{
-                minimap: { enabled: true },
-                fontSize: 14,
-                wordWrap: 'on',
-                automaticLayout: true,
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                lineHeight: 1.6,
-                padding: { top: 16, bottom: 16 },
-              }}
+          {Object.keys(openFiles).length > 0 ? (
+            <FlexLayoutComponent
+              ref={flexLayoutRef}
+              model={flexModel}
+              factory={factory}
+              onAction={handleAction}
+              onModelChange={handleModelChange}
+              onRenderTab={onRenderTab}
+              realtimeResize
             />
           ) : (
             <div className="editor-empty">
@@ -792,11 +1090,11 @@ export const ProjectEditor: React.FC = () => {
             </div>
           )}
         </Content>
-      </Layout>
 
       {/* Context Menu */}
       {contextMenuVisible && (
         <div
+          className="editor-dark-portal"
           style={{
             position: 'fixed',
             left: contextMenuPosition.x,
@@ -842,6 +1140,7 @@ export const ProjectEditor: React.FC = () => {
         onClose={() => setSettingsVisible(false)}
         open={settingsVisible}
         width={480}
+        rootClassName="editor-dark-portal"
       >
         <Form form={settingsForm} layout="vertical" onFinish={handleUpdateSettings}>
           <Form.Item
@@ -874,6 +1173,7 @@ export const ProjectEditor: React.FC = () => {
         onClose={() => setAnalyticsVisible(false)}
         open={analyticsVisible}
         width={600}
+        rootClassName="editor-dark-portal"
       >
         {analytics && (
           <div className="space-y-6">
@@ -935,107 +1235,21 @@ export const ProjectEditor: React.FC = () => {
         )}
       </Drawer>
 
-      {/* Create File Modal */}
-      <Modal
-        title={t('editor.createNewFile')}
-        open={fileModalVisible}
-        onCancel={() => {
-          setFileModalVisible(false);
-          fileForm.resetFields();
-        }}
-        footer={null}
-      >
-        <Form form={fileForm} onFinish={handleCreateFile} layout="vertical">
-          <Form.Item
-            name="name"
-            label={t('editor.fileName')}
-            rules={[{ required: true, message: t('validation.pleaseEnterFileName') }]}
-          >
-            <Input placeholder={t('editor.fileNamePlaceholder')} />
-          </Form.Item>
-          <Form.Item className="mb-0">
-            <Space className="w-full justify-end">
-              <Button onClick={() => {
-                setFileModalVisible(false);
-                fileForm.resetFields();
-              }}>
-                {t('editor.cancel')}
-              </Button>
-              <Button type="primary" htmlType="submit">
-                {t('editor.create')}
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Create Folder Modal */}
-      <Modal
-        title={t('editor.createFolder')}
-        open={folderModalVisible}
-        onCancel={() => {
-          setFolderModalVisible(false);
-          folderForm.resetFields();
-        }}
-        footer={null}
-      >
-        <Form form={folderForm} onFinish={handleCreateFolder} layout="vertical">
-          <Form.Item
-            name="name"
-            label={t('editor.folderName')}
-            rules={[{ required: true, message: t('validation.pleaseEnterFolderName') }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item className="mb-0">
-            <Space className="w-full justify-end">
-              <Button onClick={() => {
-                setFolderModalVisible(false);
-                folderForm.resetFields();
-              }}>
-                {t('editor.cancel')}
-              </Button>
-              <Button type="primary" htmlType="submit">
-                {t('editor.create')}
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Rename Modal */}
-      <Modal
-        title={t('editor.renameFile')}
-        open={renameModalVisible}
-        onCancel={() => {
-          setRenameModalVisible(false);
-          renameForm.resetFields();
-        }}
-        footer={null}
-      >
-        <Form form={renameForm} onFinish={handleRename} layout="vertical">
-          <Form.Item
-            name="new_name"
-            label={t('editor.newName')}
-            rules={[{ required: true, message: t('validation.pleaseEnterNewName') }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item className="mb-0">
-            <Space className="w-full justify-end">
-              <Button onClick={() => {
-                setRenameModalVisible(false);
-                renameForm.resetFields();
-              }}>
-                {t('editor.cancel')}
-              </Button>
-              <Button type="primary" htmlType="submit">
-                {t('editor.rename')}
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+      {/* Share Modal */}
+      {project?.is_published && (
+        <Modal
+          title={t('editor.shareTitle')}
+          open={shareModalVisible}
+          onCancel={() => setShareModalVisible(false)}
+          footer={null}
+          width={480}
+          rootClassName="editor-dark-portal"
+        >
+          <ShareContent
+            siteUrl={`${window.location.protocol}//${window.location.host}/s/${project.name}`}
+          />
+        </Modal>
+      )}
 
       {/* Publish Modal */}
       <Modal
@@ -1046,6 +1260,7 @@ export const ProjectEditor: React.FC = () => {
           publishForm.resetFields();
         }}
         footer={null}
+        rootClassName="editor-dark-portal"
       >
         <Form form={publishForm} onFinish={handlePublish} layout="vertical">
           <Form.Item
@@ -1073,3 +1288,11 @@ export const ProjectEditor: React.FC = () => {
     </Layout>
   );
 };
+
+export const ProjectEditor: React.FC = () => (
+  <ConfigProvider theme={{ algorithm: antTheme.darkAlgorithm }}>
+    <App>
+      <ProjectEditorInner />
+    </App>
+  </ConfigProvider>
+);

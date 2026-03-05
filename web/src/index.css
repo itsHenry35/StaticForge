@@ -859,45 +859,169 @@ a.ant-btn {
 /* Project Editor Styles */
 .editor-layout {
   height: 100vh;
-  background: var(--bg-secondary);
-}
-
-.editor-header {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  height: 60px;
-}
-
-.editor-header__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  letter-spacing: -0.02em;
+  background: #1e1e1e;
 }
 
 .editor-sider {
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-color);
+  background: #252526 !important;
+  border-right: 1px solid #1a1a1a !important;
+  /* Override CSS vars so FileTree and sider buttons pick up dark colours */
+  --text-primary: #cccccc;
+  --text-secondary: #969696;
+  --text-tertiary: #6b6b6b;
+  --text-muted: #555;
+  --bg-primary: #252526;
+  --bg-tertiary: rgba(255,255,255,0.07);
+  --surface-hover: rgba(255,255,255,0.07);
+  --border-color: #3a3a3a;
+  --primary-color: #3B82F6;
+  --primary-hover: #2563EB;
 }
 
+/* Make Ant Design sider's inner children flex column */
+.editor-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Top nav row */
+.editor-sider__nav {
+  height: 48px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+}
+
+.editor-sider__back-btn.ant-btn {
+  padding: 0 6px !important;
+  font-size: 13px !important;
+  color: #969696 !important;
+  font-weight: 500 !important;
+}
+
+.editor-sider__nav .ant-btn {
+  height: 30px !important;
+  padding: 0 6px !important;
+  min-width: 30px !important;
+  border-radius: var(--radius-sm) !important;
+  color: #969696 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 13px !important;
+}
+
+.editor-sider__nav .ant-btn:hover {
+  color: #cccccc !important;
+  background: rgba(255,255,255,0.07) !important;
+}
+
+.editor-sider__nav .ant-btn:disabled {
+  opacity: 0.35 !important;
+}
+
+/* File toolbar */
 .editor-sider__header {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-light);
+  height: 36px;
+  padding: 0 4px 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+  gap: 4px;
 }
 
+.editor-sider__section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b6b6b;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.editor-sider__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.editor-sider__toolbar .ant-btn {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  min-width: 24px !important;
+  border-radius: var(--radius-sm) !important;
+  color: #969696 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 13px !important;
+}
+
+.editor-sider__toolbar .ant-btn:hover {
+  color: #cccccc !important;
+  background: rgba(255,255,255,0.07) !important;
+}
+
+.editor-sider__toolbar .ant-upload {
+  display: flex !important;
+}
+
+/* File tree */
 .editor-sider__tree {
   overflow: auto;
-  height: calc(100vh - 152px);
-  padding: 8px 4px;
+  flex: 1;
+  padding: 4px 0;
+}
+
+/* Bottom footer */
+.editor-sider__footer {
+  padding: 10px 10px;
+  border-top: 1px solid #1e1e1e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.editor-sider__footer .ant-btn {
+  height: 30px !important;
+  font-size: 13px !important;
+}
+
+/* Dark portal — modals/drawers/menus inside editor, overrides light CSS vars */
+.editor-dark-portal {
+  --text-primary: #cccccc;
+  --text-secondary: #969696;
+  --text-tertiary: #6b6b6b;
+  /* Match antd dark colorBgElevated so modal-header bg == modal-body bg */
+  --bg-primary: #1f1f1f;
+  --bg-tertiary: rgba(255, 255, 255, 0.07);
+  --surface-elevated: #1f1f1f;
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --divider-color: #303030;
+  --border-color: #3a3a3a;
+  --border-light: #2a2a2a;
 }
 
 .editor-content {
-  background: var(--bg-primary);
+  background: #1e1e1e;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
 }
 
 .editor-empty {
@@ -905,7 +1029,7 @@ a.ant-btn {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-tertiary);
+  color: #555;
 }
 
 .editor-empty__icon {
@@ -916,7 +1040,7 @@ a.ant-btn {
 
 .editor-empty__text {
   font-size: 15px;
-  color: var(--text-secondary);
+  color: #555;
 }
 
 /* Compact file tree with better aesthetics */
@@ -1113,7 +1237,9 @@ a.ant-btn {
 }
 
 .saving-indicator {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--text-tertiary);
   font-weight: 500;
+  white-space: nowrap;
+  padding: 0 4px;
 }

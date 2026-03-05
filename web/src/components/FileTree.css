@@ -5,7 +5,7 @@
   overflow-x: hidden;
   user-select: none;
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
   position: relative;
 }
 
@@ -25,11 +25,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 28px;
-  padding-right: 8px;
+  height: 26px;
+  padding-right: 6px;
   cursor: pointer;
   position: relative;
-  transition: background-color 0.15s ease;
+  border-radius: 4px;
+  margin: 0 4px;
+  transition: background-color 0.1s ease;
 }
 
 .file-tree-node[draggable='true'] {
@@ -41,28 +43,28 @@
 }
 
 .file-tree-node:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: var(--bg-tertiary);
 }
 
 .file-tree-node.selected-file {
-  background-color: #e6f4ff;
+  background-color: rgba(59, 130, 246, 0.1);
 }
 
 .file-tree-node.selected-file:hover {
-  background-color: #bae0ff;
+  background-color: rgba(59, 130, 246, 0.15);
 }
 
 .file-tree-node.selected-folder {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: var(--bg-tertiary);
 }
 
 .file-tree-node.selected-folder:hover {
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: var(--border-color);
 }
 
 .file-tree-node.dragging {
   opacity: 0.4;
-  background-color: rgba(24, 144, 255, 0.1);
+  background-color: rgba(59, 130, 246, 0.08);
   cursor: grabbing !important;
 }
 
@@ -74,10 +76,11 @@
   content: '';
   position: absolute;
   top: 0;
-  left: 8px;
-  right: 8px;
+  left: 4px;
+  right: 4px;
   height: 2px;
-  background-color: #1890ff;
+  background-color: var(--primary-color);
+  border-radius: 1px;
   z-index: 10;
 }
 
@@ -85,17 +88,18 @@
   content: '';
   position: absolute;
   bottom: 0;
-  left: 8px;
-  right: 8px;
+  left: 4px;
+  right: 4px;
   height: 2px;
-  background-color: #1890ff;
+  background-color: var(--primary-color);
+  border-radius: 1px;
   z-index: 10;
 }
 
 .file-tree-node.drop-target.drop-inside {
-  background-color: rgba(24, 144, 255, 0.15) !important;
-  border: 1px dashed #1890ff;
-  box-sizing: border-box;
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  outline: 1px dashed var(--primary-color);
+  outline-offset: -1px;
 }
 
 .file-tree-node-content {
@@ -112,17 +116,17 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: bold;
-  color: #666;
-  transition: transform 0.15s ease;
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease, color 0.1s ease;
   flex-shrink: 0;
   cursor: pointer;
   user-select: none;
 }
 
 .file-tree-expand-icon:hover {
-  color: #333;
+  color: var(--text-secondary);
 }
 
 .file-tree-expand-icon.expanded {
@@ -142,13 +146,13 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  font-size: 14px;
-  color: #faad14;
+  font-size: 13px;
+  color: #e8a838;
   flex-shrink: 0;
 }
 
 .file-tree-icon .anticon-file-outlined {
-  color: #8c8c8c;
+  color: var(--text-tertiary);
 }
 
 .file-tree-label {
@@ -159,16 +163,18 @@
   white-space: nowrap;
   font-size: 13px;
   line-height: 1.5;
+  color: var(--text-primary);
 }
 
 .file-tree-actions {
   display: none;
   align-items: center;
-  gap: 4px;
-  margin-left: 8px;
+  gap: 2px;
+  margin-left: 4px;
 }
 
-.file-tree-node:hover .file-tree-actions {
+.file-tree-node:hover .file-tree-actions,
+.file-tree-node.selected-file .file-tree-actions {
   display: flex;
 }
 
@@ -176,9 +182,32 @@
   /* No additional styles needed, nesting is handled by padding */
 }
 
+.file-tree-inline-input {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--primary-color);
+  border-radius: 3px;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.file-tree-node--editing {
+  cursor: default;
+}
+
+.file-tree-node--editing:hover {
+  background-color: transparent;
+}
+
 /* Scrollbar styling */
 .file-tree::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
 }
 
 .file-tree::-webkit-scrollbar-track {
@@ -186,10 +215,10 @@
 }
 
 .file-tree::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
 }
 
 .file-tree::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--text-muted);
 }
