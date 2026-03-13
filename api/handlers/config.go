@@ -29,13 +29,16 @@ func GetConfig(c *gin.Context) {
 	var oauthConfigs []types.OAuthConfigFull
 	for _, oauth := range cfg.OAuth {
 		oauthConfigs = append(oauthConfigs, types.OAuthConfigFull{
-			Name:         oauth.Name,
-			Icon:         oauth.Icon,
-			ClientID:     oauth.ClientID,
-			ClientSecret: oauth.ClientSecret,
-			WellKnownURL: oauth.WellKnownURL,
-			Scopes:       oauth.Scopes,
-			FieldMapping: oauth.FieldMapping,
+			Name:          oauth.Name,
+			Icon:          oauth.Icon,
+			ClientID:      oauth.ClientID,
+			ClientSecret:  oauth.ClientSecret,
+			WellKnownURL:  oauth.WellKnownURL,
+			Scopes:        oauth.Scopes,
+			FieldMapping:  oauth.FieldMapping,
+			RoleClaim:     oauth.RoleClaim,
+			RoleSeparator: oauth.RoleSeparator,
+			RoleMapping:   oauth.RoleMapping,
 		})
 	}
 
@@ -81,13 +84,16 @@ func UpdateConfig(c *gin.Context) {
 	cfg.OAuth = []config.OAuthConfig{}
 	for _, oauth := range req.OAuth {
 		cfg.OAuth = append(cfg.OAuth, config.OAuthConfig{
-			Name:         oauth.Name,
-			Icon:         oauth.Icon,
-			ClientID:     oauth.ClientID,
-			ClientSecret: oauth.ClientSecret,
-			WellKnownURL: oauth.WellKnownURL,
-			Scopes:       oauth.Scopes,
-			FieldMapping: oauth.FieldMapping,
+			Name:          oauth.Name,
+			Icon:          oauth.Icon,
+			ClientID:      oauth.ClientID,
+			ClientSecret:  oauth.ClientSecret,
+			WellKnownURL:  oauth.WellKnownURL,
+			Scopes:        oauth.Scopes,
+			FieldMapping:  oauth.FieldMapping,
+			RoleClaim:     oauth.RoleClaim,
+			RoleSeparator: oauth.RoleSeparator,
+			RoleMapping:   oauth.RoleMapping,
 		})
 	}
 

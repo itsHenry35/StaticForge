@@ -33,13 +33,16 @@ type OAuthConfig struct {
 }
 
 type OAuthConfigFull struct {
-	Name         string            `json:"name"`
-	Icon         string            `json:"icon"`
-	ClientID     string            `json:"client_id"`
-	ClientSecret string            `json:"client_secret"`
-	WellKnownURL string            `json:"well_known_url"`
-	Scopes       []string          `json:"scopes"`
-	FieldMapping map[string]string `json:"field_mapping"`
+	Name          string            `json:"name"`
+	Icon          string            `json:"icon"`
+	ClientID      string            `json:"client_id"`
+	ClientSecret  string            `json:"client_secret"`
+	WellKnownURL  string            `json:"well_known_url"`
+	Scopes        []string          `json:"scopes"`
+	FieldMapping  map[string]string `json:"field_mapping"`
+	RoleClaim     string            `json:"role_claim"`
+	RoleSeparator string            `json:"role_separator"`
+	RoleMapping   map[string]string `json:"role_mapping"`
 }
 
 type UpdateConfigRequest struct {
@@ -54,11 +57,14 @@ type UpdateConfigRequest struct {
 }
 
 type OAuthProviderRequest struct {
-	Name         string            `json:"name"`
-	Icon         string            `json:"icon"`
-	ClientID     string            `json:"client_id"`
-	ClientSecret string            `json:"client_secret"`
-	WellKnownURL string            `json:"well_known_url"`
-	Scopes       []string          `json:"scopes"`
-	FieldMapping map[string]string `json:"field_mapping"`
+	Name          string            `json:"name"`
+	Icon          string            `json:"icon"`
+	ClientID      string            `json:"client_id"`
+	ClientSecret  string            `json:"client_secret"`
+	WellKnownURL  string            `json:"well_known_url"`
+	Scopes        []string          `json:"scopes"`
+	FieldMapping  map[string]string `json:"field_mapping"`
+	RoleClaim     string            `json:"role_claim"`
+	RoleSeparator string            `json:"role_separator"`
+	RoleMapping   map[string]string `json:"role_mapping"`
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Form, Switch, Button, Space, Divider, Input, Select, Popconfirm, Table, Modal, Alert, Collapse } from 'antd';
-import { SettingOutlined, DeleteOutlined, PlusOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { SettingOutlined, DeleteOutlined, PlusOutlined, InfoCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
@@ -156,19 +156,26 @@ export const Settings: React.FC = () => {
     });
   };
 
-  const handleAddOAuthProvider = async (values: OAuthConfigFull) => {
+  const handleAddOAuthProvider = async (rawValues: OAuthConfigFull & { role_mapping_entries?: Array<{ role: string; type: string }> }) => {
     if (!config) return;
+
+    // Convert role_mapping_entries array → role_mapping object
+    const role_mapping: Record<string, string> = {};
+    for (const entry of rawValues.role_mapping_entries || []) {
+      if (entry?.role) role_mapping[entry.role] = entry.type;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { role_mapping_entries, ...rest } = rawValues;
+    const values: OAuthConfigFull = { ...rest, role_mapping };
 
     // Check if we're editing an existing provider
     const existingIndex = (config.oauth || []).findIndex(p => p.name === values.name);
     let updatedOAuth;
 
     if (existingIndex >= 0) {
-      // Edit existing provider
       updatedOAuth = [...(config.oauth || [])];
       updatedOAuth[existingIndex] = values;
     } else {
-      // Add new provider
       updatedOAuth = [...(config.oauth || []), values];
     }
 
@@ -282,7 +289,10 @@ export const Settings: React.FC = () => {
             size="small"
             onClick={() => {
               setEditingProvider(record);
-              oauthForm.setFieldsValue(record);
+              oauthForm.setFieldsValue({
+                ...record,
+                role_mapping_entries: Object.entries(record.role_mapping || {}).map(([role, type]) => ({ role, type })),
+              });
               setOauthModalVisible(true);
             }}
           >
@@ -718,10 +728,55 @@ export const Settings: React.FC = () => {
             <Input placeholder={t('settings.displayNameFieldPlaceholder')} />
           </Form.Item>
 
-          <Form.Item style={{ marginBottom: 0 }}>
+          <Divider>{t('settings.roleMapping')}</Divider>
+
+          <Form.Item
+            name="role_claim"
+            label={t('settings.roleClaim')}
+            extra={t('settings.roleClaimExtra')}
+          >
+            <Input placeholder={t('settings.roleClaimPlaceholder')} />
+          </Form.Item>
+
+          <Form.Item
+            name="role_separator"
+            label={t('settings.roleSeparator')}
+            extra={t('settings.roleSeparatorExtra')}
+          >
+            <Input placeholder="," style={{ width: 120 }} />
+          </Form.Item>
+
+          <Form.List name="role_mapping_entries">
+            {(fields, { add, remove }) => (
+              <>
+                <div style={{ marginBottom: 8, fontWeight: 500, fontSize: 14 }}>{t('settings.roleMappingRules')}</div>
+                {fields.map(({ key, name }) => (
+                  <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                    <Form.Item name={[name, 'role']} style={{ marginBottom: 0 }}>
+                      <Input placeholder={t('settings.roleName')} style={{ width: 160 }} />
+                    </Form.Item>
+                    <span style={{ color: 'var(--text-tertiary)' }}>→</span>
+                    <Form.Item name={[name, 'type']} style={{ marginBottom: 0 }} initialValue="normal">
+                      <Select style={{ width: 130 }} options={[
+                        { value: 'normal',   label: t('settings.userTypeNormal') },
+                        { value: 'verified', label: t('settings.userTypeVerified') },
+                        { value: 'admin',    label: t('settings.userTypeAdmin') },
+                      ]} />
+                    </Form.Item>
+                    <MinusCircleOutlined onClick={() => remove(name)} style={{ color: 'var(--text-tertiary)', cursor: 'pointer' }} />
+                  </Space>
+                ))}
+                <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />} size="small">
+                  {t('settings.addRoleMapping')}
+                </Button>
+              </>
+            )}
+          </Form.List>
+
+          <Form.Item style={{ marginBottom: 0, marginTop: 16 }}>
             <Space>
               <Button type="primary" htmlType="submit">
-                {t('settings.addProvider')}
+                {editingProvider ? t('common.save') : t('settings.addProvider')}
               </Button>
               <Button onClick={() => {
                 setOauthModalVisible(false);

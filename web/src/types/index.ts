@@ -150,6 +150,9 @@ export interface OAuthConfigFull {
     email?: string;
     display_name?: string;
   };
+  role_claim?: string;
+  role_separator?: string;
+  role_mapping?: Record<string, string>;
 }
 
 export interface ReplacementRule {

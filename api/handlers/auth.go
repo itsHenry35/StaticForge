@@ -267,6 +267,9 @@ func OAuthCallback(c *gin.Context) {
 		return
 	}
 
+	// Resolve user type from role claim mapping (if configured)
+	resolvedType := resolveRoleType(userInfo, provider)
+
 	// Check if user exists by email (email is the unique identifier)
 	var user models.User
 	err = database.DB.Where("email = ?", email).First(&user).Error
@@ -274,21 +277,36 @@ func OAuthCallback(c *gin.Context) {
 	if err != nil {
 		// User not found, create new user
 		username := generateUsername(name)
-
+		userType := "normal"
+		if resolvedType != "" {
+			userType = resolvedType
+		}
 		user = models.User{
 			Username:    username,
 			DisplayName: displayName,
 			Email:       email,
-			Type:        "normal",
+			Type:        userType,
 			IsActive:    true,
 		}
-
 		if err := database.DB.Create(&user).Error; err != nil {
 			c.Redirect(http.StatusFound, "/login?error=user_creation_failed")
 			return
 		}
+	} else {
+		// User exists — sync display name and role type on every login.
+		updates := map[string]interface{}{}
+		if displayName != "" && displayName != user.DisplayName {
+			updates["display_name"] = displayName
+			user.DisplayName = displayName
+		}
+		if resolvedType != "" && resolvedType != user.Type {
+			updates["type"] = resolvedType
+			user.Type = resolvedType
+		}
+		if len(updates) > 0 {
+			database.DB.Model(&user).Updates(updates)
+		}
 	}
-	// User already exists - just login, regardless of which OAuth provider they use
 
 	if !user.IsActive {
 		c.Redirect(http.StatusFound, "/login?error=account_disabled")
@@ -318,6 +336,52 @@ func extractField(data map[string]interface{}, field string) string {
 	}
 
 	return ""
+}
+
+// resolveRoleType resolves the highest-priority user type from the role claim.
+// Returns "" if no role mapping is configured (caller should not change type).
+func resolveRoleType(userInfo map[string]interface{}, provider *config.OAuthConfig) string {
+	if provider.RoleClaim == "" || len(provider.RoleMapping) == 0 {
+		return ""
+	}
+
+	raw, ok := userInfo[provider.RoleClaim]
+	if !ok {
+		return "normal"
+	}
+
+	// Claim may be a string (split by separator) or a JSON array.
+	var roles []string
+	switch v := raw.(type) {
+	case string:
+		sep := provider.RoleSeparator
+		if sep == "" {
+			sep = ","
+		}
+		for _, r := range strings.Split(v, sep) {
+			if r = strings.TrimSpace(r); r != "" {
+				roles = append(roles, r)
+			}
+		}
+	case []interface{}:
+		for _, r := range v {
+			if s, ok := r.(string); ok {
+				roles = append(roles, s)
+			}
+		}
+	}
+
+	// Priority: admin(3) > verified(2) > normal(1)
+	priority := map[string]int{"normal": 1, "verified": 2, "admin": 3}
+	best, bestP := "normal", 0
+	for _, role := range roles {
+		if mapped, ok := provider.RoleMapping[role]; ok {
+			if p := priority[mapped]; p > bestP {
+				best, bestP = mapped, p
+			}
+		}
+	}
+	return best
 }
 
 // generateUsername generates a unique username from name

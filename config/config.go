@@ -70,6 +70,11 @@ type OAuthConfig struct {
 	Scopes       []string          `json:"scopes"`
 	FieldMapping map[string]string `json:"field_mapping"` // name, email, display_name
 
+	// Role mapping
+	RoleClaim     string            `json:"role_claim"`      // claim key containing role(s)
+	RoleSeparator string            `json:"role_separator"`  // separator when claim is a string, default ","
+	RoleMapping   map[string]string `json:"role_mapping"`    // role value → "normal"|"verified"|"admin"
+
 	// Auto-discovered from well_known_url
 	AuthURL     string `json:"-"`
 	TokenURL    string `json:"-"`
