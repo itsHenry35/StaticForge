@@ -9,8 +9,8 @@ type Analytics struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	ProjectID uint      `gorm:"not null;index:idx_project_date" json:"project_id"`
-	Date      time.Time `gorm:"not null;index:idx_project_date;type:date" json:"date"`
+	ProjectID uint      `gorm:"not null;uniqueIndex:idx_project_date" json:"project_id"`
+	Date      time.Time `gorm:"not null;uniqueIndex:idx_project_date;type:date" json:"date"`
 	PV        int64     `gorm:"default:0" json:"pv"` // page views
 	UV        int64     `gorm:"default:0" json:"uv"` // unique visitors
 

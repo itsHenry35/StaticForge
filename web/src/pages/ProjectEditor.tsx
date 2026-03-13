@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Layout,
@@ -11,7 +12,6 @@ import {
   Popconfirm,
   Space,
   Drawer,
-  Typography,
   Card,
   Row,
   Col,
@@ -225,7 +225,6 @@ const EditorTabContent: React.FC<{
     />
   );
 };
-const { Text } = Typography;
 
 const ProjectEditorInner: React.FC = () => {
   const { t } = useTranslation();
@@ -1300,17 +1299,20 @@ const ProjectEditorInner: React.FC = () => {
 
             {analytics.trend_data && analytics.trend_data.length > 0 && (
               <Card title={t('editor.trendData')}>
-                <div className="space-y-2">
-                  {analytics.trend_data.map((trend) => (
-                    <div key={trend.date} className="flex justify-between border-b pb-2">
-                      <Text>{trend.date}</Text>
-                      <Space>
-                        <Text type="secondary">{t('editor.pvLabel', { value: trend.pv })}</Text>
-                        <Text type="secondary">{t('editor.uvLabel', { value: trend.uv })}</Text>
-                      </Space>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={analytics.trend_data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#999' }} tickFormatter={(v) => v.slice(5)} />
+                    <YAxis tick={{ fontSize: 11, fill: '#999' }} allowDecimals={false} />
+                    <RechartsTooltip
+                      contentStyle={{ background: '#1f1f1f', border: '1px solid #333', borderRadius: 6 }}
+                      labelStyle={{ color: '#ccc' }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Line type="monotone" dataKey="pv" name="PV" stroke="#1677ff" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="uv" name="UV" stroke="#52c41a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </Card>
             )}
           </div>

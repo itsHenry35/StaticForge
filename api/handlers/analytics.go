@@ -48,8 +48,8 @@ func GetProjectAnalytics(c *gin.Context) {
 		totalUV += a.UV
 
 		if a.Date.Format("2006-01-02") == today {
-			todayPV = a.PV
-			todayUV = a.UV
+			todayPV += a.PV
+			todayUV += a.UV
 		}
 	}
 

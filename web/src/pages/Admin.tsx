@@ -27,6 +27,8 @@ export const Admin: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [usersPageSize, setUsersPageSize] = useState(10);
+  const [projectsPageSize, setProjectsPageSize] = useState(10);
 
   const fetchUsers = async () => {
     setUsersLoading(true);
@@ -91,11 +93,40 @@ export const Admin: React.FC = () => {
       title: t('admin.user'),
       dataIndex: 'username',
       key: 'username',
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            placeholder={t('admin.searchUsername')}
+            value={selectedKeys[0]}
+            onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+            onPressEnter={() => confirm()}
+            style={{ marginBottom: 8, display: 'block' }}
+          />
+          <Space>
+            <Button type="primary" onClick={() => confirm()} icon={<SearchOutlined />} size="small" style={{ width: 90 }}>
+              {t('admin.search')}
+            </Button>
+            <Button onClick={() => { clearFilters?.(); confirm(); }} size="small" style={{ width: 90 }}>
+              {t('admin.reset')}
+            </Button>
+          </Space>
+        </div>
+      ),
+      filterIcon: (filtered: boolean) => (
+        <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+      ),
+      onFilter: (value: unknown, record: User) =>
+        record.username.toLowerCase().includes((value as string).toLowerCase()) ||
+        (record.display_name || '').toLowerCase().includes((value as string).toLowerCase()) ||
+        record.email.toLowerCase().includes((value as string).toLowerCase()),
       render: (username: string, record: User) => (
         <Space>
           <Avatar icon={<UserOutlined />} style={{ background: 'var(--primary-color)' }} />
           <div>
-            <div style={{ fontWeight: 500 }}>{record.display_name || username}</div>
+            <Space size={6}>
+              <span style={{ fontWeight: 500 }}>{record.display_name || username}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{username}</span>
+            </Space>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>{record.email}</div>
           </div>
         </Space>
@@ -137,12 +168,6 @@ export const Admin: React.FC = () => {
           {isActive ? t('admin.active') : t('admin.disabled')}
         </Tag>
       ),
-    },
-    {
-      title: t('admin.oauthProvider'),
-      dataIndex: 'oauth_provider',
-      key: 'oauth_provider',
-      render: (provider?: string) => provider || '-',
     },
     {
       title: t('admin.createdAt'),
@@ -347,7 +372,7 @@ export const Admin: React.FC = () => {
           columns={userColumns}
           rowKey="id"
           loading={usersLoading}
-          pagination={{ pageSize: 10 }}
+          pagination={{ pageSize: usersPageSize, showSizeChanger: true, onShowSizeChange: (_, size) => setUsersPageSize(size) }}
         />
       ),
     },
@@ -364,7 +389,7 @@ export const Admin: React.FC = () => {
           columns={projectColumns}
           rowKey="id"
           loading={projectsLoading}
-          pagination={{ pageSize: 10 }}
+          pagination={{ pageSize: projectsPageSize, showSizeChanger: true, onShowSizeChange: (_, size) => setProjectsPageSize(size) }}
         />
       ),
     },

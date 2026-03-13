@@ -7,6 +7,7 @@ import (
 
 	"github.com/itsHenry35/StaticForge/database"
 	"github.com/itsHenry35/StaticForge/models"
+	"gorm.io/gorm/clause"
 )
 
 // RecordVisit records a visit to a project
@@ -59,26 +60,17 @@ func FlushAnalyticsToDatabase() error {
 			continue
 		}
 
-		// Update or create analytics record
-		var analytics models.Analytics
-		result := db.Where("project_id = ? AND date = ?", projectID, date).First(&analytics)
-
-		if result.Error != nil {
-			// Create new record
-			analytics = models.Analytics{
-				ProjectID: projectID,
-				Date:      date,
-				PV:        pv,
-				UV:        uv,
-			}
-			db.Create(&analytics)
-		} else {
-			// Update existing record
-			db.Model(&analytics).Updates(map[string]interface{}{
-				"pv": pv,
-				"uv": uv,
-			})
+		// Upsert analytics record
+		analytics := models.Analytics{
+			ProjectID: projectID,
+			Date:      date,
+			PV:        pv,
+			UV:        uv,
 		}
+		db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "project_id"}, {Name: "date"}},
+			DoUpdates: clause.AssignmentColumns([]string{"pv", "uv"}),
+		}).Create(&analytics)
 
 		// Delete Redis key after flushing
 		redis.Del(ctx, key)

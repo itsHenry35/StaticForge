@@ -146,7 +146,7 @@ func initializeAdminAccount() error {
 
 // startAnalyticsFlushWorker starts a background worker to flush analytics to database
 func startAnalyticsFlushWorker() {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {
