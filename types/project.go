@@ -1,5 +1,9 @@
 package types
 
+type PublicProjectInfoResponse struct {
+	DisplayName string `json:"display_name"`
+}
+
 type CreateProjectRequest struct {
 	Name        string `json:"name" binding:"required"`
 	DisplayName string `json:"display_name"`

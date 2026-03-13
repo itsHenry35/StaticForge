@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>403</title>
+  <link rel="stylesheet" href="/error-base.css">
+</head>
+<body>
+  <div class="card">
+    <div class="code">403</div>
+    <h1 id="t"></h1>
+    <p id="d"></p>
+    <div class="actions">
+      <a class="btn btn-ghost" href="javascript:history.back()" id="b"></a>
+    </div>
+  </div>
+  <script>
+    var zh = navigator.language.startsWith('zh');
+    document.getElementById('t').textContent = zh ? '账号已停用' : 'Account Disabled';
+    document.getElementById('d').textContent = zh
+      ? '该项目暂时无法访问，因为所有者账号已被管理员停用。'
+      : "This project is unavailable because the owner's account has been disabled by an administrator.";
+    document.getElementById('b').textContent = zh ? '返回' : 'Go Back';
+  </script>
+</body>
+</html>

@@ -1,16 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, Form, Input, Button, Alert } from 'antd';
-import { LockOutlined } from '@ant-design/icons';
+import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { apiService } from '../services/api';
 
 export const SiteAuth: React.FC = () => {
   const { t } = useTranslation();
   const { name } = useParams<{ name: string }>();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [creatorName, setCreatorName] = useState<string | null>(null);
   const requirePassword = searchParams.get('requirePassword') !== null;
   const error = searchParams.get('error');
+
+  useEffect(() => {
+    if (!requirePassword && name) {
+      apiService.getPublicProjectInfo(name).then((resp) => {
+        if (resp.code === 0 && resp.data?.display_name) {
+          setCreatorName(resp.data.display_name);
+        }
+      });
+    }
+  }, [name, requirePassword]);
 
   const handleConsent = () => {
     window.location.href = `/s/${name}/?consent=true`;
@@ -92,13 +104,35 @@ export const SiteAuth: React.FC = () => {
               padding: '16px 20px',
               background: 'var(--bg-tertiary)',
               borderRadius: 'var(--radius-lg)',
-              marginBottom: 20,
+              marginBottom: creatorName ? 12 : 20,
               border: '1px solid var(--border-light)'
             }}>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
                 {t('auth.userUploadedDisclaimer')}
               </p>
             </div>
+
+            {creatorName && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: 20,
+                border: '1px solid var(--border-light)',
+                fontSize: 13,
+                color: 'var(--text-secondary)'
+              }}>
+                <UserOutlined style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                <span>
+                  {t('auth.createdBy')}{' '}
+                  <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{creatorName}</strong>
+                </span>
+              </div>
+            )}
+
             <Button type="primary" onClick={handleConsent} block>
               {t('auth.continue')}
             </Button>

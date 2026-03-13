@@ -4,6 +4,8 @@ type PublicConfigResponse struct {
 	AllowRegister bool   `json:"allow_register"`
 	LogoURL       string `json:"logo_url"`
 	SiteName      string `json:"site_name"`
+	SiteHost      string `json:"site_host"`
+	SecureHost    string `json:"secure_host"`
 }
 
 type ConfigResponse struct {
@@ -13,6 +15,8 @@ type ConfigResponse struct {
 	AllowedIframeOrigin string            `json:"allowed_iframe_origin"`
 	LogoURL             string            `json:"logo_url"`
 	SiteName            string            `json:"site_name"`
+	SiteHost            string            `json:"site_host"`
+	SecureHost          string            `json:"secure_host"`
 }
 
 type ReplacementRule struct {
@@ -45,6 +49,8 @@ type UpdateConfigRequest struct {
 	AllowedIframeOrigin string                 `json:"allowed_iframe_origin"`
 	LogoURL             string                 `json:"logo_url"`
 	SiteName            string                 `json:"site_name"`
+	SiteHost            string                 `json:"site_host"`
+	SecureHost          string                 `json:"secure_host"`
 }
 
 type OAuthProviderRequest struct {

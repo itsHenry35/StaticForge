@@ -37,7 +37,9 @@ export const Settings: React.FC = () => {
       replacements: config.replacements || [],
       allowed_iframe_origin: config.allowed_iframe_origin || '*',
       logo_url: config.logo_url || '',
-      site_name: config.site_name || ''
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -57,7 +59,9 @@ export const Settings: React.FC = () => {
       replacements: config.replacements || [],
       allowed_iframe_origin: config.allowed_iframe_origin || '*',
       logo_url: config.logo_url || '',
-      site_name: config.site_name || ''
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -77,7 +81,9 @@ export const Settings: React.FC = () => {
       replacements: config.replacements || [],
       allowed_iframe_origin: config.allowed_iframe_origin || '*',
       logo_url: config.logo_url || '',
-      site_name: config.site_name || ''
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -97,7 +103,53 @@ export const Settings: React.FC = () => {
       replacements: config.replacements || [],
       allowed_iframe_origin: config.allowed_iframe_origin || '*',
       logo_url: config.logo_url || '',
-      site_name: config.site_name || ''
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
+    });
+    handleRespWithNotifySuccess(response, async () => {
+      await fetchConfig();
+    });
+  };
+
+  const handleUpdateSiteHostLocal = (value: string) => {
+    if (!config) return;
+    setConfig({ ...config, site_host: value });
+  };
+
+  const handleSaveSiteHost = async () => {
+    if (!config) return;
+    const response = await apiService.updateConfig({
+      allow_register: config.allow_register,
+      oauth: config.oauth || [],
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin || '*',
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
+    });
+    handleRespWithNotifySuccess(response, async () => {
+      await fetchConfig();
+    });
+  };
+
+  const handleUpdateSecureHostLocal = (value: string) => {
+    if (!config) return;
+    setConfig({ ...config, secure_host: value });
+  };
+
+  const handleSaveSecureHost = async () => {
+    if (!config) return;
+    const response = await apiService.updateConfig({
+      allow_register: config.allow_register,
+      oauth: config.oauth || [],
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin || '*',
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -126,7 +178,9 @@ export const Settings: React.FC = () => {
       replacements: config.replacements || [],
       allowed_iframe_origin: config.allowed_iframe_origin,
       logo_url: config.logo_url || '',
-      site_name: config.site_name || ''
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       setOauthModalVisible(false);
@@ -144,7 +198,9 @@ export const Settings: React.FC = () => {
       replacements: config.replacements || [],
       allowed_iframe_origin: config.allowed_iframe_origin,
       logo_url: config.logo_url || '',
-      site_name: config.site_name || ''
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -166,7 +222,9 @@ export const Settings: React.FC = () => {
       replacements: newReplacements,
       allowed_iframe_origin: config.allowed_iframe_origin,
       logo_url: config.logo_url || '',
-      site_name: config.site_name || ''
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -188,7 +246,9 @@ export const Settings: React.FC = () => {
       replacements: config.replacements || [],
       allowed_iframe_origin: config.allowed_iframe_origin,
       logo_url: config.logo_url || '',
-      site_name: config.site_name || ''
+      site_name: config.site_name || '',
+      site_host: config.site_host || '',
+      secure_host: config.secure_host || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -329,6 +389,43 @@ export const Settings: React.FC = () => {
                 />
                 <Button type="primary" onClick={handleSaveSiteName}>{t('common.save')}</Button>
               </Space.Compact>
+            </div>
+
+            <Divider />
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 4 }}>{t('settings.siteHost')}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+                {t('settings.siteHostDesc')}
+              </div>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder={t('settings.siteHostPlaceholder')}
+                  value={config?.site_host || ''}
+                  onChange={(e) => handleUpdateSiteHostLocal(e.target.value)}
+                />
+                <Button type="primary" onClick={handleSaveSiteHost}>{t('common.save')}</Button>
+              </Space.Compact>
+            </div>
+
+            <Divider />
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 4 }}>{t('settings.secureHost')}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+                {t('settings.secureHostDesc')}
+              </div>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder={t('settings.secureHostPlaceholder')}
+                  value={config?.secure_host || ''}
+                  onChange={(e) => handleUpdateSecureHostLocal(e.target.value)}
+                />
+                <Button type="primary" onClick={handleSaveSecureHost}>{t('common.save')}</Button>
+              </Space.Compact>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>
+                {t('settings.secureHostHint')}
+              </div>
             </div>
           </Space>
         </Card>

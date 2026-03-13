@@ -21,6 +21,7 @@ import type {
   PublicConfig,
   ConfigData,
   OAuthConfigFull,
+  PublicProjectInfo,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -262,11 +263,15 @@ class ApiService {
     return await callApi(() => this.client.get<ApiResponse<PublicConfig>>('/api/config/public'));
   }
 
+  async getPublicProjectInfo(name: string): Promise<ApiResponse<PublicProjectInfo>> {
+    return await callApi(() => this.client.get<ApiResponse<PublicProjectInfo>>(`/api/projects/public/${name}`));
+  }
+
   async getConfig(): Promise<ApiResponse<ConfigData>> {
     return await callApi(() => this.client.get<ApiResponse<ConfigData>>('/api/admin/config'));
   }
 
-  async updateConfig(data: { allow_register: boolean; oauth: OAuthConfigFull[]; replacements?: { from: string; to: string }[], allowed_iframe_origin: string; logo_url?: string; site_name?: string }): Promise<ApiResponse<null>> {
+  async updateConfig(data: { allow_register: boolean; oauth: OAuthConfigFull[]; replacements?: { from: string; to: string }[], allowed_iframe_origin: string; logo_url?: string; site_name?: string; site_host?: string; secure_host?: string }): Promise<ApiResponse<null>> {
     return await callApi(() => this.client.put<ApiResponse<null>>('/api/admin/config', data));
   }
 }

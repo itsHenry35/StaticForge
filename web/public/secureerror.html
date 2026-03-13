@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>403</title>
+  <link rel="stylesheet" href="/error-base.css">
+</head>
+<body>
+  <div class="card">
+    <div class="code">403</div>
+    <h1 id="t"></h1>
+    <p id="d"></p>
+    <div class="actions" id="actions"></div>
+  </div>
+  <script>
+    var zh = navigator.language.startsWith('zh');
+    var sf = window.__SF || {};
+    var project   = sf.project;
+    var workspace = sf.workspace;
+
+    document.getElementById('t').textContent = zh ? '内容不可访问' : 'Content Not Available';
+    document.getElementById('d').textContent = zh
+      ? '此域名仅展示来自受信任发布者的内容，当前项目在此处不可访问。'
+      : 'This domain only serves content from verified publishers. This project is not available here.';
+
+    if (workspace) {
+      var href  = project ? '//' + workspace + '/s/' + project + '/' : '//' + workspace;
+      var label = zh ? (project ? '在主站查看此项目' : '访问主站') : (project ? 'View on Main Site' : 'Visit Main Site');
+      document.getElementById('actions').innerHTML = '<a class="btn" href="' + href + '">' + label + '</a>';
+    }
+  </script>
+</body>
+</html>

@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -105,49 +106,7 @@ func CopyFile(src, dst string) error {
 
 // GetMimeType returns MIME type based on file extension
 func GetMimeType(filename string) string {
-	ext := filepath.Ext(filename)
-	switch ext {
-	case ".html", ".htm":
-		return "text/html"
-	case ".css":
-		return "text/css"
-	case ".js":
-		return "application/javascript"
-	case ".json":
-		return "application/json"
-	case ".jpg", ".jpeg":
-		return "image/jpeg"
-	case ".png":
-		return "image/png"
-	case ".gif":
-		return "image/gif"
-	case ".svg":
-		return "image/svg+xml"
-	case ".webp":
-		return "image/webp"
-	case ".ico":
-		return "image/x-icon"
-	case ".txt":
-		return "text/plain"
-	case ".md":
-		return "text/markdown"
-	case ".xml":
-		return "application/xml"
-	case ".pdf":
-		return "application/pdf"
-	case ".woff":
-		return "font/woff"
-	case ".woff2":
-		return "font/woff2"
-	case ".ttf":
-		return "font/ttf"
-	case ".eot":
-		return "application/vnd.ms-fontobject"
-	case ".otf":
-		return "font/otf"
-	default:
-		return "application/octet-stream"
-	}
+	return mime.TypeByExtension(filepath.Ext(filename))
 }
 
 // ListFiles lists all files in a directory recursively

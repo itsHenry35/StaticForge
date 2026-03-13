@@ -17,6 +17,8 @@ func GetPublicConfig(c *gin.Context) {
 		AllowRegister: cfg.AllowRegister,
 		LogoURL:       cfg.LogoURL,
 		SiteName:      cfg.SiteName,
+		SiteHost:      cfg.SiteHost,
+		SecureHost:    cfg.SecureHost,
 	})
 }
 
@@ -52,6 +54,8 @@ func GetConfig(c *gin.Context) {
 		AllowedIframeOrigin: cfg.AllowedIframeOrigin,
 		LogoURL:             cfg.LogoURL,
 		SiteName:            cfg.SiteName,
+		SiteHost:            cfg.SiteHost,
+		SecureHost:          cfg.SecureHost,
 	})
 }
 
@@ -70,6 +74,8 @@ func UpdateConfig(c *gin.Context) {
 	cfg.AllowedIframeOrigin = req.AllowedIframeOrigin
 	cfg.LogoURL = req.LogoURL
 	cfg.SiteName = req.SiteName
+	cfg.SiteHost = req.SiteHost
+	cfg.SecureHost = req.SecureHost
 
 	// Update OAuth providers
 	cfg.OAuth = []config.OAuthConfig{}

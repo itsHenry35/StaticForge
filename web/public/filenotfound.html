@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404</title>
+  <link rel="stylesheet" href="/error-base.css">
+</head>
+<body>
+  <div class="card">
+    <div class="code">404</div>
+    <h1 id="t"></h1>
+    <p id="d"></p>
+    <div id="file-meta" class="meta" style="display:none"></div>
+    <div class="actions">
+      <a class="btn" id="btn-home" style="display:none"></a>
+      <a class="btn btn-ghost" href="javascript:history.back()" id="btn-back"></a>
+    </div>
+  </div>
+  <script>
+    var zh = navigator.language.startsWith('zh');
+    var sf = window.__SF || {};
+    var project = sf.project;
+    var file    = sf.file;
+
+    document.getElementById('t').textContent = zh ? '文件不存在' : 'File Not Found';
+    document.getElementById('d').textContent = zh
+      ? '该文件不存在于此项目中。'
+      : 'This file does not exist in the project.';
+    document.getElementById('btn-back').textContent = zh ? '返回' : 'Go Back';
+
+    if (file) {
+      var el = document.getElementById('file-meta');
+      el.style.display = 'inline-block';
+      el.textContent = file;
+    }
+    if (project) {
+      var btn = document.getElementById('btn-home');
+      btn.style.display = 'inline-block';
+      btn.href = '/s/' + project + '/';
+      btn.textContent = zh ? '项目首页' : 'Project Home';
+    }
+  </script>
+</body>
+</html>

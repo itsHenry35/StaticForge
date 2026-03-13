@@ -19,6 +19,7 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LoggerMiddleware())
 	r.Use(middlewares.SecurityHeadersMiddleware())
+	r.Use(middlewares.SecureHostMiddleware())
 	r.Use(middlewares.TrailingSlashMiddleware())
 
 	// API routes - add origin check to prevent access from /s/
@@ -37,6 +38,9 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 
 		// Public config
 		api.GET("/config/public", handlers.GetPublicConfig)
+
+		// Public project info (for consent page)
+		api.GET("/projects/public/:name", handlers.GetPublicProjectInfo)
 
 		// Protected routes (require authentication)
 		protected := api.Group("")
@@ -119,6 +123,33 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 	if err != nil {
 		panic(err)
 	}
+
+	// Make the dist FS available to handlers for error pages.
+	handlers.BuildFS = buildFS
+
+	// Error pages — served directly from dist (copied from web/public by Vite).
+	errorPages := []string{
+		"notfound.html", "filenotfound.html",
+		"secureerror.html", "securedashboardredirect.html",
+		"projectdisabled.html", "accountdisabled.html",
+	}
+	for _, page := range errorPages {
+		p := page
+		r.GET("/"+p, func(c *gin.Context) {
+			handlers.ServeErrorPage(c, http.StatusOK, p, nil)
+		})
+	}
+
+	// Shared CSS for error pages.
+	r.GET("/error-base.css", func(c *gin.Context) {
+		data, err := fs.ReadFile(buildFS, "error-base.css")
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		c.Header("Cache-Control", "public, max-age=86400")
+		c.Data(http.StatusOK, "text/css; charset=utf-8", data)
+	})
 
 	// Serve assets directory (hashed filenames, long-lived immutable cache)
 	assetsFS, err := fs.Sub(buildFS, "assets")

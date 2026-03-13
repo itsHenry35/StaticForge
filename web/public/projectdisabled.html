@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>403</title>
+  <link rel="stylesheet" href="/error-base.css">
+</head>
+<body>
+  <div class="card">
+    <div class="code">403</div>
+    <h1 id="t"></h1>
+    <p id="d"></p>
+    <div class="actions">
+      <a class="btn btn-ghost" href="javascript:history.back()" id="b"></a>
+    </div>
+  </div>
+  <script>
+    var zh = navigator.language.startsWith('zh');
+    document.getElementById('t').textContent = zh ? '项目已停用' : 'Project Disabled';
+    document.getElementById('d').textContent = zh
+      ? '该项目已被管理员停用，暂时无法访问。'
+      : 'This project has been disabled by an administrator and is currently unavailable.';
+    document.getElementById('b').textContent = zh ? '返回' : 'Go Back';
+  </script>
+</body>
+</html>

@@ -12,6 +12,19 @@ import (
 	"github.com/itsHenry35/StaticForge/utils"
 )
 
+// GetPublicProjectInfo returns minimal public info about a published project (no auth required).
+func GetPublicProjectInfo(c *gin.Context) {
+	name := c.Param("name")
+	var project models.Project
+	if err := database.DB.Preload("User").Where("name = ? AND is_published = ?", name, true).First(&project).Error; err != nil {
+		utils.NotFound(c, utils.MsgProjectNotFound)
+		return
+	}
+	utils.Success(c, types.PublicProjectInfoResponse{
+		DisplayName: project.User.DisplayName,
+	})
+}
+
 // CreateProject creates a new project
 func CreateProject(c *gin.Context) {
 	var req types.CreateProjectRequest

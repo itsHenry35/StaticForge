@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workspace</title>
+  <link rel="stylesheet" href="/error-base.css">
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🔑</div>
+    <h1 id="t"></h1>
+    <p id="d"></p>
+    <div id="host-meta" class="meta" style="display:none"></div>
+    <div class="actions" id="actions"></div>
+  </div>
+  <script>
+    var zh = navigator.language.startsWith('zh');
+    var sf = window.__SF || {};
+    var workspace = sf.workspace;
+
+    document.getElementById('t').textContent = zh ? '工作区不在此域名' : 'Workspace Not Here';
+    document.getElementById('d').textContent = zh
+      ? '此域名仅用于内容浏览，登录与工作区功能不在此提供。如需管理项目，请访问主站。'
+      : 'This domain is for content viewing only. Login and workspace features are not available here. Please use the main site to manage your projects.';
+
+    if (workspace) {
+      var meta = document.getElementById('host-meta');
+      meta.style.display = 'inline-block';
+      meta.textContent = workspace;
+
+      var label = zh ? '前往工作区' : 'Open Workspace';
+      document.getElementById('actions').innerHTML = '<a class="btn" href="//' + workspace + '">' + label + '</a>';
+    }
+  </script>
+</body>
+</html>

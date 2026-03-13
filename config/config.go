@@ -24,6 +24,8 @@ type Config struct {
 	AllowedIframeOrigin string            `json:"allowed_iframe_origin"` // Allowed origins for iframe embedding (* for all, empty for none)
 	LogoURL             string            `json:"logo_url"`
 	SiteName            string            `json:"site_name"`
+	SiteHost            string            `json:"site_host"`   // Main site host (e.g. example.com)
+	SecureHost          string            `json:"secure_host"` // Embed-only host: only serves trusted sites, blocks management pages
 	mu                  sync.RWMutex      `json:"-"`
 }
 
