@@ -17,7 +17,7 @@ export const SiteAuth: React.FC = () => {
   useEffect(() => {
     if (!requirePassword && name) {
       apiService.getPublicProjectInfo(name).then((resp) => {
-        if (resp.code === 0 && resp.data?.display_name) {
+        if (resp.code === 200 && resp.data?.display_name) {
           setCreatorName(resp.data.display_name);
         }
       });
