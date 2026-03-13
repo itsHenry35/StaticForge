@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/itsHenry35/StaticForge/api/handlers"
 	"github.com/itsHenry35/StaticForge/api/middlewares"
+	"github.com/itsHenry35/StaticForge/utils"
 )
 
 // SetupRoutes sets up all application routes
@@ -183,18 +184,7 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 			}
 
 			// Determine content type
-			contentType := "application/octet-stream"
-			if strings.HasSuffix(localFile, ".json") {
-				contentType = "application/json"
-			} else if strings.HasSuffix(localFile, ".txt") {
-				contentType = "text/plain"
-			} else if strings.HasSuffix(localFile, ".svg") {
-				contentType = "image/svg+xml"
-			} else if strings.HasSuffix(localFile, ".png") {
-				contentType = "image/png"
-			} else if strings.HasSuffix(localFile, ".ico") {
-				contentType = "image/x-icon"
-			}
+			contentType := utils.GetMimeType(localFile)
 
 			c.Header("Cache-Control", "public, max-age=86400")
 			c.Data(http.StatusOK, contentType, data)

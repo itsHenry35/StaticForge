@@ -73,8 +73,9 @@ func AdminMiddleware() gin.HandlerFunc {
 	}
 }
 
-// PreviewAuthMiddleware accepts JWT token from Authorization header OR ?token= query param
-// This is needed because iframes cannot send custom headers.
+// PreviewAuthMiddleware accepts JWT token from Authorization header, ?token= query param,
+// or the sf_preview session cookie (set automatically on first authenticated load so that
+// sub-resources inside the preview iframe don't need to carry the token themselves).
 func PreviewAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := ""
@@ -88,9 +89,20 @@ func PreviewAuthMiddleware() gin.HandlerFunc {
 			token = c.Query("token")
 		}
 		if token == "" {
+			// Fall back to session cookie set on the first authenticated request.
+			token, _ = c.Cookie("sf_preview")
+		}
+		if token == "" {
 			utils.Unauthorized(c, utils.MsgUnauthorized)
 			c.Abort()
 			return
+		}
+
+		// When the token arrived via query param, persist it as a session cookie so
+		// that sub-resource requests (JS, CSS, images) inside the preview iframe are
+		// authenticated without needing ?token= on every URL.
+		if c.Query("token") != "" {
+			c.SetCookie("sf_preview", token, 0, "/api/projects/", "", false, true)
 		}
 
 		claims, err := utils.ParseToken(token)
