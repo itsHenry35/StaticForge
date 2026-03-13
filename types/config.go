@@ -1,7 +1,9 @@
 package types
 
 type PublicConfigResponse struct {
-	AllowRegister bool `json:"allow_register"`
+	AllowRegister bool   `json:"allow_register"`
+	LogoURL       string `json:"logo_url"`
+	SiteName      string `json:"site_name"`
 }
 
 type ConfigResponse struct {
@@ -9,6 +11,8 @@ type ConfigResponse struct {
 	OAuth               []OAuthConfigFull `json:"oauth"`
 	Replacements        []ReplacementRule `json:"replacements"`
 	AllowedIframeOrigin string            `json:"allowed_iframe_origin"`
+	LogoURL             string            `json:"logo_url"`
+	SiteName            string            `json:"site_name"`
 }
 
 type ReplacementRule struct {
@@ -39,6 +43,8 @@ type UpdateConfigRequest struct {
 	OAuth               []OAuthProviderRequest `json:"oauth"`
 	Replacements        []ReplacementRule      `json:"replacements"`
 	AllowedIframeOrigin string                 `json:"allowed_iframe_origin"`
+	LogoURL             string                 `json:"logo_url"`
+	SiteName            string                 `json:"site_name"`
 }
 
 type OAuthProviderRequest struct {

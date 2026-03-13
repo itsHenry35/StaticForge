@@ -22,6 +22,8 @@ type Config struct {
 	AllowRegister       bool              `json:"allow_register"`
 	Replacements        []ReplacementRule `json:"replacements"`
 	AllowedIframeOrigin string            `json:"allowed_iframe_origin"` // Allowed origins for iframe embedding (* for all, empty for none)
+	LogoURL             string            `json:"logo_url"`
+	SiteName            string            `json:"site_name"`
 	mu                  sync.RWMutex      `json:"-"`
 }
 

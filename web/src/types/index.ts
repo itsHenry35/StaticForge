@@ -134,6 +134,8 @@ export interface SystemStats {
 
 export interface PublicConfig {
   allow_register: boolean;
+  logo_url?: string;
+  site_name?: string;
 }
 
 export interface OAuthConfigFull {
@@ -160,4 +162,6 @@ export interface ConfigData {
   oauth: OAuthConfigFull[];
   replacements: ReplacementRule[];
   allowed_iframe_origin: string;
+  logo_url?: string;
+  site_name?: string;
 }

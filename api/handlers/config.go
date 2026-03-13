@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/itsHenry35/StaticForge/config"
 	"github.com/itsHenry35/StaticForge/types"
@@ -13,6 +15,8 @@ func GetPublicConfig(c *gin.Context) {
 
 	utils.Success(c, types.PublicConfigResponse{
 		AllowRegister: cfg.AllowRegister,
+		LogoURL:       cfg.LogoURL,
+		SiteName:      cfg.SiteName,
 	})
 }
 
@@ -46,6 +50,8 @@ func GetConfig(c *gin.Context) {
 		OAuth:               oauthConfigs,
 		Replacements:        replacements,
 		AllowedIframeOrigin: cfg.AllowedIframeOrigin,
+		LogoURL:             cfg.LogoURL,
+		SiteName:            cfg.SiteName,
 	})
 }
 
@@ -62,6 +68,8 @@ func UpdateConfig(c *gin.Context) {
 	// Update all config fields
 	cfg.AllowRegister = req.AllowRegister
 	cfg.AllowedIframeOrigin = req.AllowedIframeOrigin
+	cfg.LogoURL = req.LogoURL
+	cfg.SiteName = req.SiteName
 
 	// Update OAuth providers
 	cfg.OAuth = []config.OAuthConfig{}
@@ -86,10 +94,9 @@ func UpdateConfig(c *gin.Context) {
 		})
 	}
 
-	// Discover OIDC endpoints for new providers
+	// Discover OIDC endpoints for new providers (non-fatal: log and continue)
 	if err := cfg.InitializeOAuth(); err != nil {
-		utils.InternalServerError(c, utils.MsgConfigUpdateFailed)
-		return
+		log.Printf("Warning: OIDC discovery failed: %v", err)
 	}
 
 	// Save config to file

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout as AntLayout, Menu, Dropdown, Avatar, Drawer, Button } from 'antd';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { PageTransition } from './PageTransition';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { apiService } from '../services/api';
 
 const { Header, Content } = AntLayout;
 
@@ -28,6 +29,27 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [logoURL, setLogoURL] = useState('');
+  const [siteName, setSiteName] = useState('');
+
+  useEffect(() => {
+    apiService.getPublicConfig().then((res) => {
+      const url = res.data?.logo_url || '';
+      const name = res.data?.site_name || '';
+      setLogoURL(url);
+      setSiteName(name);
+      if (name) document.title = name;
+      if (url) {
+        let link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = url;
+      }
+    });
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -77,9 +99,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <AntLayout className="app-shell">
       <Header className="app-topbar">
         <Link to="/dashboard" className="app-topbar__brand">
-          <span className="app-topbar__mark">SF</span>
+          {logoURL
+            ? <img src={logoURL} alt="logo" style={{ height: 32, objectFit: 'contain', maxWidth: 40, marginRight: 8 }} />
+            : <span className="app-topbar__mark">SF</span>
+          }
           <span className="app-topbar__title">
-            <span>{t('nav.staticForge')}</span>
+            <span>{siteName || t('nav.staticForge')}</span>
             <span>{t('nav.siteWorkspace')}</span>
           </span>
         </Link>
@@ -126,9 +151,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         className="app-drawer"
         title={
           <div className="app-topbar__brand app-drawer__title">
-            <span className="app-topbar__mark">SF</span>
+            {logoURL
+              ? <img src={logoURL} alt="logo" style={{ height: 28, objectFit: 'contain', maxWidth: 36, marginRight: 8 }} />
+              : <span className="app-topbar__mark">SF</span>
+            }
             <span className="app-topbar__title">
-              <span>{t('nav.staticForge')}</span>
+              <span>{siteName || t('nav.staticForge')}</span>
               <span>{t('nav.siteWorkspace')}</span>
             </span>
           </div>

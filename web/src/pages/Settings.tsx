@@ -35,7 +35,49 @@ export const Settings: React.FC = () => {
       allow_register: checked,
       oauth: config.oauth || [],
       replacements: config.replacements || [],
-      allowed_iframe_origin: config.allowed_iframe_origin || '*'
+      allowed_iframe_origin: config.allowed_iframe_origin || '*',
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || ''
+    });
+    handleRespWithNotifySuccess(response, async () => {
+      await fetchConfig();
+    });
+  };
+
+  const handleUpdateLogoURLLocal = (value: string) => {
+    if (!config) return;
+    setConfig({ ...config, logo_url: value });
+  };
+
+  const handleSaveLogoURL = async () => {
+    if (!config) return;
+    const response = await apiService.updateConfig({
+      allow_register: config.allow_register,
+      oauth: config.oauth || [],
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin || '*',
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || ''
+    });
+    handleRespWithNotifySuccess(response, async () => {
+      await fetchConfig();
+    });
+  };
+
+  const handleUpdateSiteNameLocal = (value: string) => {
+    if (!config) return;
+    setConfig({ ...config, site_name: value });
+  };
+
+  const handleSaveSiteName = async () => {
+    if (!config) return;
+    const response = await apiService.updateConfig({
+      allow_register: config.allow_register,
+      oauth: config.oauth || [],
+      replacements: config.replacements || [],
+      allowed_iframe_origin: config.allowed_iframe_origin || '*',
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -53,7 +95,9 @@ export const Settings: React.FC = () => {
       allow_register: config.allow_register,
       oauth: config.oauth || [],
       replacements: config.replacements || [],
-      allowed_iframe_origin: config.allowed_iframe_origin || '*'
+      allowed_iframe_origin: config.allowed_iframe_origin || '*',
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -80,7 +124,9 @@ export const Settings: React.FC = () => {
       allow_register: config.allow_register,
       oauth: updatedOAuth,
       replacements: config.replacements || [],
-      allowed_iframe_origin: config.allowed_iframe_origin
+      allowed_iframe_origin: config.allowed_iframe_origin,
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       setOauthModalVisible(false);
@@ -96,7 +142,9 @@ export const Settings: React.FC = () => {
       allow_register: config.allow_register,
       oauth: (config.oauth || []).filter(p => p.name !== name),
       replacements: config.replacements || [],
-      allowed_iframe_origin: config.allowed_iframe_origin
+      allowed_iframe_origin: config.allowed_iframe_origin,
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -116,7 +164,9 @@ export const Settings: React.FC = () => {
       allow_register: config.allow_register,
       oauth: config.oauth || [],
       replacements: newReplacements,
-      allowed_iframe_origin: config.allowed_iframe_origin
+      allowed_iframe_origin: config.allowed_iframe_origin,
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -136,7 +186,9 @@ export const Settings: React.FC = () => {
       allow_register: config.allow_register,
       oauth: config.oauth || [],
       replacements: config.replacements || [],
-      allowed_iframe_origin: config.allowed_iframe_origin
+      allowed_iframe_origin: config.allowed_iframe_origin,
+      logo_url: config.logo_url || '',
+      site_name: config.site_name || ''
     });
     handleRespWithNotifySuccess(response, async () => {
       await fetchConfig();
@@ -238,6 +290,45 @@ export const Settings: React.FC = () => {
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>
                 {t('settings.iframeOriginHint')}
               </div>
+            </div>
+
+            <Divider />
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 4 }}>{t('settings.logoURL')}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+                {t('settings.logoURLDesc')}
+              </div>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder={t('settings.logoURLPlaceholder')}
+                  value={config?.logo_url || ''}
+                  onChange={(e) => handleUpdateLogoURLLocal(e.target.value)}
+                />
+                <Button type="primary" onClick={handleSaveLogoURL}>{t('common.save')}</Button>
+              </Space.Compact>
+              {config?.logo_url && (
+                <div style={{ marginTop: 12 }}>
+                  <img src={config.logo_url} alt="logo preview" style={{ height: 32, objectFit: 'contain' }} />
+                </div>
+              )}
+            </div>
+
+            <Divider />
+
+            <div>
+              <div style={{ fontWeight: 500, marginBottom: 4 }}>{t('settings.siteName')}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+                {t('settings.siteNameDesc')}
+              </div>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder={t('settings.siteNamePlaceholder')}
+                  value={config?.site_name || ''}
+                  onChange={(e) => handleUpdateSiteNameLocal(e.target.value)}
+                />
+                <Button type="primary" onClick={handleSaveSiteName}>{t('common.save')}</Button>
+              </Space.Compact>
             </div>
           </Space>
         </Card>
