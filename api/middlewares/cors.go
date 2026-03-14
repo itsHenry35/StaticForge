@@ -1,22 +1,42 @@
 package middlewares
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 )
 
-// CORSMiddleware handles Cross-Origin Resource Sharing
+// CORSMiddleware rejects all cross-origin requests.
+// The frontend and API are always same-origin, so no cross-origin access is needed.
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+		origin := c.Request.Header.Get("Origin")
+		if origin == "" {
+			c.Next()
 			return
 		}
 
-		c.Next()
+		// Extract host from Origin header
+		originHost := origin
+		if _, after, ok := strings.Cut(origin, "://"); ok {
+			originHost = after
+		}
+		// Strip path if any
+		if idx := strings.IndexByte(originHost, '/'); idx != -1 {
+			originHost = originHost[:idx]
+		}
+
+		// Allow if Origin host matches the request host (same-origin POST etc.)
+		if originHost == c.Request.Host {
+			c.Next()
+			return
+		}
+
+		// Cross-origin: reject
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+		} else {
+			c.AbortWithStatus(403)
+		}
 	}
 }
