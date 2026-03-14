@@ -42,7 +42,7 @@ import {
   CopyOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import * as monaco from 'monaco-editor';
+import * as monaco from '../monacoSetup';
 import { loader, Editor } from '@monaco-editor/react';
 import { apiService } from '../services/api';
 import type { Project, File as FileType, Analytics, PublicConfig } from '../types';
