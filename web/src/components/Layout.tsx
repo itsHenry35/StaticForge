@@ -51,8 +51,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     });
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 

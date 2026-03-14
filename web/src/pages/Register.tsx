@@ -24,8 +24,6 @@ export const Register: React.FC = () => {
     setLoading(true);
     const resp = await apiService.register(values);
     handleRespWithNotifySuccess(resp, (data) => {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       navigate('/dashboard');
     }, () => {

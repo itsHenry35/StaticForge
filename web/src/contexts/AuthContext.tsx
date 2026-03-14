@@ -6,7 +6,7 @@ import { handleRespWithoutNotify } from '../utils/handleResp';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setUser: (user: User) => void;
 }
@@ -19,8 +19,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      // Skip token validation for public auth pages
-      const publicPaths = ['/login', '/register', '/oauth/callback', '/auth/'];
+      // Skip validation for public auth pages
+      const publicPaths = ['/login', '/register', '/auth/'];
       const isPublicPath = publicPaths.some(path => window.location.pathname.startsWith(path));
 
       if (isPublicPath) {
@@ -28,23 +28,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      const token = localStorage.getItem('token');
-      if (token) {
-        const resp = await apiService.getCurrentUser();
-        handleRespWithoutNotify(resp, (userData) => {
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-        });
-      }
+      const resp = await apiService.getCurrentUser();
+      handleRespWithoutNotify(resp, (userData) => {
+        setUser(userData);
+      });
       setLoading(false);
     };
 
     initAuth();
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const logout = async () => {
+    await apiService.logout();
     setUser(null);
   };
 
@@ -52,7 +47,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const resp = await apiService.getCurrentUser();
     handleRespWithoutNotify(resp, (userData) => {
       setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
     });
   };
 

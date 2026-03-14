@@ -27,8 +27,6 @@ export const OAuthCallback: React.FC = () => {
       handleRespWithNotifySuccess(
         response,
         async (data) => {
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
           await refreshUser();
           navigate('/dashboard');
         },

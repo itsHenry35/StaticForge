@@ -16,22 +16,6 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 		isStaticOrPreview := strings.HasPrefix(c.Request.URL.Path, "/s/") ||
 			strings.Contains(c.Request.URL.Path, "/preview")
 		if isStaticOrPreview {
-			// Allow scripts, images, fonts, frames, etc. from anywhere
-			// But block ALL network connections (fetch/XHR/WebSocket) and form submissions
-			// This prevents data exfiltration via JavaScript
-			c.Writer.Header().Set("Content-Security-Policy",
-				"default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; "+
-					"script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; "+
-					"connect-src 'none'; "+ // Block ALL fetch/XHR/WebSocket connections
-					"img-src * data: blob:; "+
-					"style-src * 'unsafe-inline' data:; "+
-					"font-src * data: blob:; "+
-					"media-src * data: blob:; "+
-					"frame-src * data:; "+
-					"object-src * data:; "+
-					"base-uri 'self'; "+
-					"form-action 'none'")
-
 			// Allow embedding static sites in iframes from any origin
 			c.Writer.Header().Set("X-Frame-Options", "ALLOWALL")
 

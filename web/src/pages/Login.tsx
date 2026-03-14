@@ -14,7 +14,7 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [oauthProviders, setOauthProviders] = useState<OAuthProvider[]>([]);
   const [allowRegister, setAllowRegister] = useState(true);
-  const { user, setUser, refreshUser } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -25,29 +25,9 @@ export const Login: React.FC = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    // Handle OAuth callback with token
-    const token = searchParams.get('token');
     const error = searchParams.get('error');
 
-    if (token) {
-      // Store token
-      localStorage.setItem('token', token);
-
-      // Fetch user info
-      apiService.getCurrentUser().then((response) => {
-        handleRespWithoutNotify(response, (userData) => {
-          localStorage.setItem('user', JSON.stringify(userData));
-          message.success(t('success_login'));
-          // Refresh user in AuthContext
-          refreshUser().then(() => {
-            navigate('/dashboard', { replace: true });
-          });
-        });
-      }).catch(() => {
-        message.error(t('error_userinfo_failed'));
-        localStorage.removeItem('token');
-      });
-    } else if (error) {
+    if (error) {
       const errorMessages: Record<string, string> = {
         oauth_failed: t('error_oauth_failed'),
         invalid_provider: t('error_invalid_oauth_provider'),
@@ -64,7 +44,7 @@ export const Login: React.FC = () => {
       // Clear URL parameters
       navigate('/login', { replace: true });
     }
-  }, [searchParams, navigate, refreshUser]);
+  }, [searchParams, navigate, t]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,8 +68,6 @@ export const Login: React.FC = () => {
     setLoading(true);
     const resp = await apiService.login(values);
     handleRespWithNotifySuccess(resp, (data) => {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       navigate('/dashboard');
     }, () => {

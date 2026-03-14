@@ -43,35 +43,19 @@ class ApiService {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
+      withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
       },
     });
-
-    // Request interceptor to add auth token
-    this.client.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
 
     // Response interceptor to handle errors
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError<ApiResponse>) => {
         if (error.response?.status === 401) {
-          // Only redirect to login if it's not a login/register request
           const isAuthRequest = error.config?.url?.includes('/api/auth/');
-
           if (!isAuthRequest) {
-            // Clear token and redirect to login for authenticated requests
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
             window.location.href = '/login';
           }
         }
@@ -87,6 +71,10 @@ class ApiService {
 
   async login(data: LoginRequest): Promise<ApiResponse<AuthResponse>> {
     return await callApi(() => this.client.post<ApiResponse<AuthResponse>>('/api/auth/login', data));
+  }
+
+  async logout(): Promise<void> {
+    await this.client.post('/api/auth/logout').catch(() => {});
   }
 
   async getOAuthProviders(): Promise<ApiResponse<OAuthProvider[]>> {

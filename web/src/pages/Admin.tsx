@@ -19,10 +19,12 @@ import { apiService } from '../services/api';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
 import type { User, Project } from '../types';
 import { Settings } from './Settings';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Admin: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
@@ -179,8 +181,7 @@ export const Admin: React.FC = () => {
       title: t('admin.actions'),
       key: 'actions',
       render: (_: unknown, record: User) => {
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-        const isCurrentUser = currentUser.id === record.id;
+        const isCurrentUser = currentUser?.id === record.id;
 
         return (
           <Space size="small" wrap>

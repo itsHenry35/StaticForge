@@ -32,6 +32,7 @@ func SetupRoutes(r *gin.Engine, staticFS embed.FS) {
 		{
 			auth.POST("/login", handlers.Login)
 			auth.POST("/register", handlers.Register)
+			auth.POST("/logout", handlers.Logout)
 			auth.GET("/oauth/providers", handlers.GetOAuthProviders)
 			auth.GET("/oauth/login/:provider", handlers.InitiateOAuthLogin)
 			auth.GET("/oauth/callback", handlers.OAuthCallback)

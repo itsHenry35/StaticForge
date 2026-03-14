@@ -9,25 +9,25 @@ import (
 	"github.com/itsHenry35/StaticForge/utils"
 )
 
-// AuthMiddleware validates JWT token and sets user info in context
+// AuthMiddleware validates JWT token and sets user info in context.
+// Accepts token from Authorization Bearer header or sf_session cookie.
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
+		token := ""
+		if authHeader := c.GetHeader("Authorization"); authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				token = parts[1]
+			}
+		}
+		if token == "" {
+			token, _ = c.Cookie("sf_session")
+		}
+		if token == "" {
 			utils.Unauthorized(c, utils.MsgUnauthorized)
 			c.Abort()
 			return
 		}
-
-		// Extract token from "Bearer <token>"
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			utils.Unauthorized(c, utils.MsgUnauthorized)
-			c.Abort()
-			return
-		}
-
-		token := parts[1]
 		claims, err := utils.ParseToken(token)
 		if err != nil {
 			utils.Unauthorized(c, utils.MsgInvalidToken)
@@ -73,9 +73,7 @@ func AdminMiddleware() gin.HandlerFunc {
 	}
 }
 
-// PreviewAuthMiddleware accepts JWT token from Authorization header, ?token= query param,
-// or the sf_preview session cookie (set automatically on first authenticated load so that
-// sub-resources inside the preview iframe don't need to carry the token themselves).
+// PreviewAuthMiddleware accepts JWT token from Authorization header or sf_session cookie.
 func PreviewAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := ""
@@ -86,23 +84,12 @@ func PreviewAuthMiddleware() gin.HandlerFunc {
 			}
 		}
 		if token == "" {
-			token = c.Query("token")
-		}
-		if token == "" {
-			// Fall back to session cookie set on the first authenticated request.
-			token, _ = c.Cookie("sf_preview")
+			token, _ = c.Cookie("sf_session")
 		}
 		if token == "" {
 			utils.Unauthorized(c, utils.MsgUnauthorized)
 			c.Abort()
 			return
-		}
-
-		// When the token arrived via query param, persist it as a session cookie so
-		// that sub-resource requests (JS, CSS, images) inside the preview iframe are
-		// authenticated without needing ?token= on every URL.
-		if c.Query("token") != "" {
-			c.SetCookie("sf_preview", token, 0, "/api/projects/", "", false, true)
 		}
 
 		claims, err := utils.ParseToken(token)

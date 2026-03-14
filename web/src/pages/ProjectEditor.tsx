@@ -203,8 +203,7 @@ const ShareContent: React.FC<{ siteUrl: string; secureUrl?: string }> = ({ siteU
 
 const PreviewTabContent: React.FC<{ projectId: number; refreshKey: number }> = ({ projectId, refreshKey }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const token = localStorage.getItem('token') ?? '';
-  const src = `/api/projects/${projectId}/preview/?token=${encodeURIComponent(token)}`;
+  const src = `/api/projects/${projectId}/preview/`;
 
   useEffect(() => {
     if (refreshKey > 0) {
@@ -226,8 +225,7 @@ const isMediaFile = (mimeType: string) =>
   mimeType.startsWith('image/') || mimeType.startsWith('video/') || mimeType.startsWith('audio/');
 
 const MediaTabContent: React.FC<{ projectId: number; filePath: string; mimeType: string }> = ({ projectId, filePath, mimeType }) => {
-  const token = localStorage.getItem('token') ?? '';
-  const src = `/api/projects/${projectId}/preview/${filePath}?token=${encodeURIComponent(token)}`;
+  const src = `/api/projects/${projectId}/preview/${filePath}`;
 
   const style: React.CSSProperties = { maxWidth: '100%', maxHeight: '100%', display: 'block', margin: 'auto' };
 

@@ -53,6 +53,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	setSessionCookie(c, token)
+
 	utils.SuccessWithCode(c, utils.MsgLoginSuccess, types.LoginResponse{
 		Token: token,
 		User: types.UserResponse{
@@ -65,6 +67,12 @@ func Login(c *gin.Context) {
 			CreatedAt:   user.CreatedAt.Format(time.RFC3339),
 		},
 	})
+}
+
+// Logout clears the session cookie
+func Logout(c *gin.Context) {
+	clearSessionCookie(c)
+	utils.Success(c, nil)
 }
 
 // Register handles user registration
@@ -134,6 +142,8 @@ func Register(c *gin.Context) {
 		utils.InternalServerError(c, utils.MsgTokenGenerationFailed)
 		return
 	}
+
+	setSessionCookie(c, token)
 
 	utils.SuccessWithCode(c, utils.MsgRegisterSuccess, types.LoginResponse{
 		Token: token,
@@ -319,8 +329,8 @@ func OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	// Redirect to frontend login page with token
-	c.Redirect(http.StatusFound, "/login?token="+jwtToken)
+	setSessionCookie(c, jwtToken)
+	c.Redirect(http.StatusFound, "/dashboard")
 }
 
 // extractField extracts a field from nested map
@@ -382,6 +392,21 @@ func resolveRoleType(userInfo map[string]interface{}, provider *config.OAuthConf
 		}
 	}
 	return best
+}
+
+// setSessionCookie sets the sf_session cookie scoped to /api/
+func setSessionCookie(c *gin.Context, token string) {
+	cfg := config.GetConfig()
+	secure := c.Request.TLS != nil
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("sf_session", token, cfg.JWT.Expire*3600, "/api/", "", secure, true)
+}
+
+// clearSessionCookie expires the sf_session cookie
+func clearSessionCookie(c *gin.Context) {
+	secure := c.Request.TLS != nil
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("sf_session", "", -1, "/api/", "", secure, true)
 }
 
 // generateUsername generates a unique username from name
