@@ -343,7 +343,7 @@ const ProjectEditorInner: React.FC = () => {
             display_name: data.display_name,
             description: data.description,
             is_published: data.is_published,
-            is_secure: data.is_secure,
+            is_secure: (user?.type === 'verified' || user?.type === 'admin') ? data.is_secure : false,
           });
         }
       },
