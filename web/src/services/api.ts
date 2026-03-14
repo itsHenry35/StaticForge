@@ -55,7 +55,9 @@ class ApiService {
       (error: AxiosError<ApiResponse>) => {
         if (error.response?.status === 401) {
           const isAuthRequest = error.config?.url?.includes('/api/auth/');
-          if (!isAuthRequest) {
+          const onLoginPage = window.location.pathname.startsWith('/login') || window.location.pathname.startsWith('/register');
+          if (!isAuthRequest && !onLoginPage) {
+            localStorage.removeItem('user');
             window.location.href = '/login';
           }
         }

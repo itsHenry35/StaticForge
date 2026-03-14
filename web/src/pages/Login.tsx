@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, message, Divider, Space } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
@@ -14,15 +14,11 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [oauthProviders, setOauthProviders] = useState<OAuthProvider[]>([]);
   const [allowRegister, setAllowRegister] = useState(true);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [siteName, setSiteName] = useState('');
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -59,10 +55,19 @@ export const Login: React.FC = () => {
 
       handleRespWithoutNotify(configResponse, (config) => {
         setAllowRegister(config.allow_register);
+        if (config.logo_url) setLogoUrl(config.logo_url);
+        if (config.site_name) {
+          setSiteName(config.site_name);
+          document.title = config.site_name;
+        }
       });
     };
     fetchData();
   }, []);
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
@@ -95,22 +100,26 @@ export const Login: React.FC = () => {
       </div>
       <Card style={{ width: '100%', maxWidth: 420, boxShadow: 'var(--shadow-lg)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 48,
-            height: 48,
-            margin: '0 auto 16px',
-            borderRadius: 'var(--radius-lg)',
-            background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%)',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            fontWeight: 700,
-            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)'
-          }}>
-            SF
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt={siteName || 'Logo'} style={{ width: 48, height: 48, margin: '0 auto 16px', display: 'block', objectFit: 'contain' }} />
+          ) : (
+            <div style={{
+              width: 48,
+              height: 48,
+              margin: '0 auto 16px',
+              borderRadius: 'var(--radius-lg)',
+              background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 20,
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)'
+            }}>
+              SF
+            </div>
+          )}
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
             {t('auth.welcomeBack')}
           </h1>

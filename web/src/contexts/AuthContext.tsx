@@ -13,34 +13,49 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getCachedUser(): User | null {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedUser();
+  const [user, setUserState] = useState<User | null>(cached);
+  const [loading, setLoading] = useState(!cached);
+
+  const setUser = (userData: User) => {
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUserState(userData);
+  };
+
+  const clearUser = () => {
+    localStorage.removeItem('user');
+    setUserState(null);
+  };
 
   useEffect(() => {
-    const initAuth = async () => {
-      // Skip validation for public auth pages
-      const publicPaths = ['/login', '/register', '/auth/'];
-      const isPublicPath = publicPaths.some(path => window.location.pathname.startsWith(path));
-
-      if (isPublicPath) {
-        setLoading(false);
-        return;
+    const verify = async () => {
+      try {
+        const resp = await apiService.getCurrentUser();
+        handleRespWithoutNotify(resp, (userData) => {
+          setUser(userData);
+        });
+      } catch {
+        // Server error, keep cached user
       }
-
-      const resp = await apiService.getCurrentUser();
-      handleRespWithoutNotify(resp, (userData) => {
-        setUser(userData);
-      });
       setLoading(false);
     };
 
-    initAuth();
+    verify();
   }, []);
 
   const logout = async () => {
     await apiService.logout();
-    setUser(null);
+    clearUser();
   };
 
   const refreshUser = async () => {
