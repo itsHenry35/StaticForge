@@ -369,6 +369,7 @@ func MoveFileByPath(c *gin.Context) {
 	var req struct {
 		SourcePath string `json:"source_path" binding:"required"`
 		TargetPath string `json:"target_path" binding:"required"`
+		Overwrite  bool   `json:"overwrite"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -437,8 +438,15 @@ func MoveFileByPath(c *gin.Context) {
 
 	// Check if final target already exists
 	if _, err := os.Stat(finalTargetPath); err == nil {
-		utils.BadRequest(c, utils.MsgInvalidRequest)
-		return
+		if !req.Overwrite {
+			utils.BadRequest(c, utils.MsgInvalidRequest)
+			return
+		}
+		// Overwrite: remove existing file/folder first
+		if err := os.RemoveAll(finalTargetPath); err != nil {
+			utils.InternalServerError(c, utils.MsgFileMoveFailed)
+			return
+		}
 	}
 
 	// Ensure parent directory of target exists

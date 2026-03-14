@@ -14,6 +14,49 @@ import './FileTree.css';
 
 const normalizePath = (path: string) => path.replace(/^\/+/, '').replace(/\/+$/, '');
 
+export interface DroppedFile {
+  file: File;
+  relativePath: string; // e.g. "folder/sub/file.txt" or "file.txt"
+}
+
+async function readAllEntries(reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> {
+  const all: FileSystemEntry[] = [];
+  let batch: FileSystemEntry[];
+  do {
+    batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+    all.push(...batch);
+  } while (batch.length > 0);
+  return all;
+}
+
+async function collectFiles(entry: FileSystemEntry, prefix: string): Promise<DroppedFile[]> {
+  if (entry.isFile) {
+    const file = await new Promise<File>((resolve, reject) =>
+      (entry as FileSystemFileEntry).file(resolve, reject)
+    );
+    return [{ file, relativePath: prefix + entry.name }];
+  }
+  if (entry.isDirectory) {
+    const reader = (entry as FileSystemDirectoryEntry).createReader();
+    const children = await readAllEntries(reader);
+    const nested = await Promise.all(
+      children.map(child => collectFiles(child, prefix + entry.name + '/'))
+    );
+    return nested.flat();
+  }
+  return [];
+}
+
+async function getDroppedFiles(items: DataTransferItemList): Promise<DroppedFile[]> {
+  const entries: FileSystemEntry[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const entry = items[i].webkitGetAsEntry();
+    if (entry) entries.push(entry);
+  }
+  const results = await Promise.all(entries.map(e => collectFiles(e, '')));
+  return results.flat();
+}
+
 export type InlineEditState =
   | { type: 'new-file' | 'new-folder'; parentPath: string }
   | { type: 'rename'; file: FileType };
@@ -35,6 +78,7 @@ const InlineInput: React.FC<{
           autoFocus
           className="file-tree-inline-input"
           defaultValue={defaultValue}
+          aria-label="file name"
           onFocus={(e) => defaultValue && e.currentTarget.select()}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
@@ -81,12 +125,14 @@ interface FileTreeProps {
   onSelect?: (file: FileType) => void;
   onContextMenu?: (file: FileType, event: React.MouseEvent) => void;
   onDragEnd?: (draggedFile: FileType, targetFile: FileType, dropToGap: boolean) => void;
-  onFileDrop?: (files: File[], targetFolder: FileType | null) => void;
+  onFileDrop?: (files: DroppedFile[], targetFolder: FileType | null) => void;
   renderActions?: (file: FileType) => React.ReactNode;
   inlineEditState?: InlineEditState | null;
   onInlineEditStateChange?: (state: InlineEditState | null) => void;
   onInlineCreate?: (name: string, parentPath: string, isFolder: boolean) => void;
   onInlineRename?: (file: FileType, newName: string) => void;
+  onDeleteMultiple?: (files: FileType[]) => void;
+  onSelectionChange?: (paths: Set<string>) => void;
 }
 
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -102,10 +148,15 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onInlineEditStateChange,
   onInlineCreate,
   onInlineRename,
+  onDeleteMultiple,
+  onSelectionChange,
 }) => {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [draggedNode, setDraggedNode] = useState<FileTreeNode | null>(null);
   const [dropTarget, setDropTarget] = useState<{ node: FileTreeNode; position: 'before' | 'inside' | 'after' } | null>(null);
+  const [isRootDragOver, setIsRootDragOver] = useState(false);
+  const [multiSelectedPaths, setMultiSelectedPaths] = useState<Set<string>>(new Set());
+  const lastClickedPathRef = useRef<string | null>(null);
 
   // Build tree structure from flat file list
   const buildTree = useCallback((fileList: FileType[]): FileTreeNode[] => {
@@ -189,6 +240,38 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
   const treeData = buildTree(files);
 
+  // Sync multi-selection state to parent
+  useEffect(() => {
+    onSelectionChange?.(multiSelectedPaths);
+  }, [multiSelectedPaths]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getParentPath = (path: string) => {
+    const idx = path.lastIndexOf('/');
+    return idx === -1 ? '' : path.substring(0, idx);
+  };
+
+  const getVisibleNodes = (nodes: FileTreeNode[]): FileTreeNode[] => {
+    const result: FileTreeNode[] = [];
+    for (const node of nodes) {
+      result.push(node);
+      if (node.isFolder && expandedKeys.has(node.key) && node.children) {
+        result.push(...getVisibleNodes(node.children));
+      }
+    }
+    return result;
+  };
+
+  const findNodeByPath = (nodes: FileTreeNode[], path: string): FileTreeNode | null => {
+    for (const n of nodes) {
+      if (normalizePath(n.path) === normalizePath(path)) return n;
+      if (n.children) {
+        const found = findNodeByPath(n.children, path);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
   // Get icon for file based on extension
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -255,8 +338,50 @@ export const FileTree: React.FC<FileTreeProps> = ({
     });
   };
 
-  const handleSelect = (node: FileTreeNode) => {
+  const handleSelect = (node: FileTreeNode, event: React.MouseEvent) => {
     if (inlineEditState?.type === 'rename' && inlineEditState.file.path === node.fileData.path) return;
+
+    const isMultiKey = event.ctrlKey || event.metaKey;
+    const isShift = event.shiftKey;
+    const nodeParent = getParentPath(node.path);
+
+    if (isShift && lastClickedPathRef.current) {
+      const anchorParent = getParentPath(lastClickedPathRef.current);
+      if (anchorParent !== nodeParent) {
+        return; // Different level — ignore
+      }
+      // Range select within same parent's visible siblings
+      const siblings = getVisibleNodes(treeData).filter(n => getParentPath(n.path) === nodeParent);
+      const lastIdx = siblings.findIndex(n => n.path === lastClickedPathRef.current);
+      const currIdx = siblings.findIndex(n => n.path === node.path);
+      if (lastIdx !== -1 && currIdx !== -1) {
+        const [start, end] = [Math.min(lastIdx, currIdx), Math.max(lastIdx, currIdx)];
+        setMultiSelectedPaths(new Set(siblings.slice(start, end + 1).map(n => n.path)));
+      }
+      return;
+    }
+
+    if (isMultiKey) {
+      // Only toggle if same parent as existing selection
+      const existingParent = multiSelectedPaths.size > 0
+        ? getParentPath([...multiSelectedPaths][0])
+        : nodeParent;
+      if (existingParent !== nodeParent) {
+        return; // Different level — ignore
+      }
+      setMultiSelectedPaths(prev => {
+        const next = new Set(prev);
+        if (next.has(node.path)) next.delete(node.path);
+        else next.add(node.path);
+        return next;
+      });
+      lastClickedPathRef.current = node.path;
+      return;
+    }
+
+    // Normal click — clear multi-select, handle folder expand, open file
+    setMultiSelectedPaths(new Set([node.path]));
+    lastClickedPathRef.current = node.path;
     if (node.isFolder) {
       toggleExpand(node.key);
     }
@@ -279,14 +404,30 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const handleDragOver = (node: FileTreeNode, event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
+    setIsRootDragOver(false);
 
     // Check if dragging external files
     const isExternalFile = event.dataTransfer.types.includes('Files');
 
     if (isExternalFile) {
-      // For external files, only allow drop on folders or show as 'inside' current location
       if (node.isFolder) {
         setDropTarget({ node, position: 'inside' });
+      } else {
+        // Highlight the parent folder so the entire folder region gets highlighted
+        const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
+        if (parentPath) {
+          const parentNode = findNodeByPath(treeData, parentPath);
+          if (parentNode) {
+            setDropTarget({ node: parentNode, position: 'inside' });
+          } else {
+            setDropTarget(null);
+            setIsRootDragOver(true);
+          }
+        } else {
+          // Root-level file — show root drop indicator
+          setDropTarget(null);
+          setIsRootDragOver(true);
+        }
       }
       return;
     }
@@ -318,23 +459,30 @@ export const FileTree: React.FC<FileTreeProps> = ({
     setDropTarget(null);
   };
 
-  const handleDrop = (node: FileTreeNode, event: React.DragEvent) => {
+  const handleDrop = async (node: FileTreeNode, event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
-    // Check if dropping external files
-    const droppedFiles = event.dataTransfer.files;
-    if (droppedFiles && droppedFiles.length > 0) {
-      // Convert FileList to Array
-      const filesArray = Array.from(droppedFiles);
+    // Check if dropping external files/folders
+    if (event.dataTransfer.items && event.dataTransfer.items.length > 0) {
+      const hasExternal = Array.from(event.dataTransfer.items).some(i => i.kind === 'file');
+      if (hasExternal) {
+        // Collect entries synchronously before any await
+        const droppedFiles = await getDroppedFiles(event.dataTransfer.items);
 
-      // Determine target folder
-      const targetFolder = node.isFolder ? node.fileData : null;
+        let targetFolder: FileType | null;
+        if (node.isFolder) {
+          targetFolder = node.fileData;
+        } else {
+          const parentPath = normalizePath(node.path.substring(0, node.path.lastIndexOf('/')));
+          targetFolder = files.find(f => f.is_folder && normalizePath(f.path) === parentPath) ?? null;
+        }
 
-      onFileDrop?.(filesArray, targetFolder);
-
-      setDropTarget(null);
-      return;
+        onFileDrop?.(droppedFiles, targetFolder);
+        setDropTarget(null);
+        setIsRootDragOver(false);
+        return;
+      }
     }
 
     // Internal file move
@@ -354,6 +502,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const handleDragEnd = () => {
     setDraggedNode(null);
     setDropTarget(null);
+    setIsRootDragOver(false);
   };
 
   const renderNewItemGhost = (parentPath: string, level: number) => {
@@ -382,6 +531,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
     const isDragging = draggedNode?.key === node.key;
     const isDropTarget = dropTarget?.node.key === node.key;
     const isRenaming = inlineEditState?.type === 'rename' && inlineEditState.file.path === node.fileData.path;
+    const isMultiSelected = multiSelectedPaths.has(node.path);
 
     const indent = node.level * 16;
     const ghost = node.isFolder && isExpanded ? renderNewItemGhost(node.path, node.level + 1) : null;
@@ -389,11 +539,11 @@ export const FileTree: React.FC<FileTreeProps> = ({
     return (
       <div key={node.key}>
         <div
-          className={`file-tree-node ${isFileSelected ? 'selected-file' : ''} ${isFolderSelected ? 'selected-folder' : ''} ${isDragging ? 'dragging' : ''} ${
+          className={`file-tree-node ${isFileSelected ? 'selected-file' : ''} ${isFolderSelected ? 'selected-folder' : ''} ${isMultiSelected ? 'multi-selected' : ''} ${isDragging ? 'dragging' : ''} ${
             isDropTarget ? `drop-target drop-${dropTarget?.position}` : ''
           }`}
           style={{ paddingLeft: `${indent + 8}px` }}
-          onClick={() => handleSelect(node)}
+          onClick={(e) => handleSelect(node, e)}
           onContextMenu={(e) => handleContextMenu(node, e)}
           draggable={!isRenaming}
           onDragStart={(e) => handleDragStart(node, e)}
@@ -459,7 +609,34 @@ export const FileTree: React.FC<FileTreeProps> = ({
           )}
         </div>
         {node.isFolder && isExpanded && ((node.children?.length ?? 0) > 0 || ghost) && (
-          <div className="file-tree-children">
+          <div
+            className="file-tree-children"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsRootDragOver(false);
+              setDropTarget({ node, position: 'inside' });
+            }}
+            onDrop={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+                const hasExternal = Array.from(e.dataTransfer.items).some(i => i.kind === 'file');
+                if (hasExternal) {
+                  const droppedFiles = await getDroppedFiles(e.dataTransfer.items);
+                  onFileDrop?.(droppedFiles, node.fileData);
+                  setDropTarget(null);
+                  setIsRootDragOver(false);
+                  return;
+                }
+              }
+              if (draggedNode && draggedNode.key !== node.key) {
+                onDragEnd?.(draggedNode.fileData, node.fileData, false);
+              }
+              setDraggedNode(null);
+              setDropTarget(null);
+            }}
+          >
             {ghost}
             {node.children?.map((child) => renderTreeNode(child))}
           </div>
@@ -471,25 +648,64 @@ export const FileTree: React.FC<FileTreeProps> = ({
   // Handle drag and drop on the tree container (root level)
   const handleTreeDragOver = (event: React.DragEvent) => {
     event.preventDefault();
-    event.stopPropagation();
+    const isExternalFile = event.dataTransfer.types.includes('Files');
+    if (isExternalFile) {
+      setIsRootDragOver(true);
+      setDropTarget(null);
+    }
   };
 
-  const handleTreeDrop = (event: React.DragEvent) => {
+  const handleTreeDragLeave = (event: React.DragEvent) => {
+    // Only clear when actually leaving the tree container
+    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+      setIsRootDragOver(false);
+      setDropTarget(null);
+    }
+  };
+
+  const handleTreeDrop = async (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
+    setIsRootDragOver(false);
 
-    const droppedFiles = event.dataTransfer.files;
-    if (droppedFiles && droppedFiles.length > 0) {
-      const filesArray = Array.from(droppedFiles);
-      // Drop to root (no folder selected)
-      onFileDrop?.(filesArray, null);
+    if (event.dataTransfer.items && event.dataTransfer.items.length > 0) {
+      const hasExternal = Array.from(event.dataTransfer.items).some(i => i.kind === 'file');
+      if (hasExternal) {
+        const droppedFiles = await getDroppedFiles(event.dataTransfer.items);
+        onFileDrop?.(droppedFiles, null);
+        return;
+      }
+    }
+
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+      event.preventDefault();
+      const currentParent = lastClickedPathRef.current
+        ? getParentPath(lastClickedPathRef.current)
+        : '';
+      const siblings = getVisibleNodes(treeData).filter(n => getParentPath(n.path) === currentParent);
+      setMultiSelectedPaths(new Set(siblings.map(n => n.path)));
+    }
+    if ((event.key === 'Delete' || event.key === 'Backspace') && multiSelectedPaths.size > 0) {
+      const selectedFiles = files.filter(f => multiSelectedPaths.has(f.path));
+      if (selectedFiles.length > 0) {
+        onDeleteMultiple?.(selectedFiles);
+      }
+    }
+    if (event.key === 'Escape') {
+      setMultiSelectedPaths(new Set());
     }
   };
 
   return (
     <div
-      className="file-tree"
+      className={`file-tree${isRootDragOver ? ' drag-over' : ''}`}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       onDragOver={handleTreeDragOver}
+      onDragLeave={handleTreeDragLeave}
       onDrop={handleTreeDrop}
     >
       {renderNewItemGhost('/', 0)}

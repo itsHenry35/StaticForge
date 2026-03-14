@@ -18,7 +18,13 @@
   bottom: 0;
   pointer-events: none;
   border: 2px dashed transparent;
+  border-radius: 4px;
   transition: border-color 0.2s ease;
+}
+
+.file-tree.drag-over::after {
+  border-color: var(--primary-color);
+  background: rgba(59, 130, 246, 0.03);
 }
 
 .file-tree-node {
@@ -62,6 +68,18 @@
   background-color: var(--border-color);
 }
 
+.file-tree-node.multi-selected {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+.file-tree-node.multi-selected:hover {
+  background-color: rgba(59, 130, 246, 0.22);
+}
+
+.file-tree:focus {
+  outline: none;
+}
+
 .file-tree-node.dragging {
   opacity: 0.4;
   background-color: rgba(59, 130, 246, 0.08);
@@ -100,6 +118,13 @@
   background-color: rgba(59, 130, 246, 0.12) !important;
   outline: 1px dashed var(--primary-color);
   outline-offset: -1px;
+}
+
+.file-tree-node.drop-target.drop-inside + .file-tree-children {
+  background-color: rgba(59, 130, 246, 0.06);
+  outline: 1px dashed rgba(59, 130, 246, 0.4);
+  outline-offset: -1px;
+  border-radius: 0 0 4px 4px;
 }
 
 .file-tree-node-content {

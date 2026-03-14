@@ -142,11 +142,14 @@ class ApiService {
     );
   }
 
-  async uploadFile(projectId: number, file: globalThis.File, path?: string): Promise<ApiResponse<File>> {
+  async uploadFile(projectId: number, file: globalThis.File, path?: string, overwrite?: boolean): Promise<ApiResponse<File>> {
     const formData = new FormData();
     formData.append('file', file);
     if (path) {
       formData.append('path', path);
+    }
+    if (overwrite) {
+      formData.append('overwrite', 'true');
     }
     return await callApi(() =>
       this.client.post<ApiResponse<File>>(
@@ -195,11 +198,12 @@ class ApiService {
     );
   }
 
-  async moveFileByPath(projectId: number, sourcePath: string, targetPath: string): Promise<ApiResponse<File>> {
+  async moveFileByPath(projectId: number, sourcePath: string, targetPath: string, overwrite?: boolean): Promise<ApiResponse<File>> {
     return await callApi(() =>
       this.client.post<ApiResponse<File>>(`/api/projects/${projectId}/files/move`, {
         source_path: sourcePath,
-        target_path: targetPath
+        target_path: targetPath,
+        overwrite: overwrite ?? false,
       })
     );
   }

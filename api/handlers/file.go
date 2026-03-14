@@ -31,6 +31,7 @@ func UploadFile(c *gin.Context) {
 	if path == "" {
 		path = "/"
 	}
+	overwrite := c.PostForm("overwrite") == "true"
 
 	// Validate file size
 	cfg := config.GetConfig()
@@ -63,8 +64,15 @@ func UploadFile(c *gin.Context) {
 
 	// Check if file already exists
 	if _, err := os.Stat(fullPath); err == nil {
-		utils.BadRequest(c, utils.MsgInvalidRequest)
-		return
+		if !overwrite {
+			utils.BadRequest(c, utils.MsgInvalidRequest)
+			return
+		}
+		// Overwrite: remove existing file first
+		if err := os.Remove(fullPath); err != nil {
+			utils.InternalServerError(c, utils.MsgFileUploadFailed)
+			return
+		}
 	}
 
 	// Ensure parent directory exists

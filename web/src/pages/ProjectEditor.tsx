@@ -47,7 +47,7 @@ import { apiService } from '../services/api';
 import type { Project, File as FileType, Analytics } from '../types';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
 import { FileTree } from '../components/FileTree';
-import type { InlineEditState } from '../components/FileTree';
+import type { InlineEditState, DroppedFile } from '../components/FileTree';
 import {
   Layout as FlexLayoutComponent,
   Model as FlexModel,
@@ -198,6 +198,39 @@ const PreviewTabContent: React.FC<{ projectId: number; refreshKey: number }> = (
   );
 };
 
+const isMediaFile = (mimeType: string) =>
+  mimeType.startsWith('image/') || mimeType.startsWith('video/') || mimeType.startsWith('audio/');
+
+const MediaTabContent: React.FC<{ projectId: number; filePath: string; mimeType: string }> = ({ projectId, filePath, mimeType }) => {
+  const token = localStorage.getItem('token') ?? '';
+  const src = `/api/projects/${projectId}/preview/${filePath}?token=${encodeURIComponent(token)}`;
+
+  const style: React.CSSProperties = { maxWidth: '100%', maxHeight: '100%', display: 'block', margin: 'auto' };
+
+  if (mimeType.startsWith('image/')) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, boxSizing: 'border-box' }}>
+        <img src={src} alt={filePath} style={style} />
+      </div>
+    );
+  }
+  if (mimeType.startsWith('video/')) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, boxSizing: 'border-box' }}>
+        <video src={src} controls style={style} />
+      </div>
+    );
+  }
+  if (mimeType.startsWith('audio/')) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <audio src={src} controls />
+      </div>
+    );
+  }
+  return null;
+};
+
 // ── Per-tab Monaco editor (uncontrolled — defaultValue avoids cursor jumps) ──
 
 const EditorTabContent: React.FC<{
@@ -243,6 +276,7 @@ const ProjectEditorInner: React.FC = () => {
   const [inlineEditState, setInlineEditState] = useState<InlineEditState | null>(null);
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [treeSelectedPaths, setTreeSelectedPaths] = useState<Set<string>>(new Set());
   const [contextMenuNode, setContextMenuNode] = useState<FileType | null>(null);
   const [uploadingFolder, setUploadingFolder] = useState(false);
   const [siderWidth, setSiderWidth] = useState(280);
@@ -353,6 +387,32 @@ const ProjectEditorInner: React.FC = () => {
       return;
     }
 
+    // Media files: skip content fetch, open preview tab directly
+    if (isMediaFile(file.mime_type)) {
+      const entry: OpenFileData = { file, content: '', dirty: false };
+      openFilesRef.current = { ...openFilesRef.current, [file.path]: entry };
+      setOpenFiles(openFilesRef.current);
+
+      const isPreviewOnly = (ts: ReturnType<typeof flexModel.getActiveTabset>) =>
+        !!ts && ts.getChildren().length > 0 &&
+        ts.getChildren().every(child => (child as TabNode).getComponent() === 'preview');
+      let tabSetId: string | null = null;
+      const activeTs = flexModel.getActiveTabset();
+      if (activeTs && !isPreviewOnly(activeTs)) tabSetId = activeTs.getId();
+      if (!tabSetId) {
+        flexModel.visitNodes((n) => {
+          if (n.getType() === 'tabset' && !tabSetId && !isPreviewOnly(n as typeof activeTs)) tabSetId = n.getId();
+        });
+      }
+      if (!tabSetId) tabSetId = activeTs?.getId() ?? 'main';
+      flexModel.doAction(Actions.addNode(
+        { type: 'tab', name: file.name, component: 'editor', config: { filePath: file.path } },
+        tabSetId, DockLocation.CENTER, -1,
+      ));
+      forceUpdate(n => n + 1);
+      return;
+    }
+
     // Fetch content then open new tab
     const response = await apiService.getFileByPath(projectId, file.path);
     handleRespWithoutNotify(response, (fileData) => {
@@ -361,11 +421,22 @@ const ProjectEditorInner: React.FC = () => {
       openFilesRef.current = { ...openFilesRef.current, [file.path]: entry };
       setOpenFiles(openFilesRef.current);
 
-      // Find active tabset
-      let tabSetId = 'main';
+      // Find best tabset: prefer one that already has editor tabs, avoid preview-only tabsets
+      const isPreviewOnly = (ts: ReturnType<typeof flexModel.getActiveTabset>) =>
+        !!ts && ts.getChildren().length > 0 &&
+        ts.getChildren().every(child => (child as TabNode).getComponent() === 'preview');
+
+      let tabSetId: string | null = null;
       const active = flexModel.getActiveTabset();
-      if (active) tabSetId = active.getId();
-      else flexModel.visitNodes((n) => { if (n.getType() === 'tabset' && tabSetId === 'main') tabSetId = n.getId(); });
+      if (active && !isPreviewOnly(active)) tabSetId = active.getId();
+      if (!tabSetId) {
+        flexModel.visitNodes((n) => {
+          if (n.getType() === 'tabset' && !tabSetId && !isPreviewOnly(n as typeof active)) {
+            tabSetId = n.getId();
+          }
+        });
+      }
+      if (!tabSetId) tabSetId = active?.getId() ?? 'main';
 
       flexModel.doAction(Actions.addNode(
         { type: 'tab', name: file.name, component: 'editor', config: { filePath: file.path } },
@@ -410,6 +481,9 @@ const ProjectEditorInner: React.FC = () => {
     if (!filePath) return <div style={{ padding: 16, color: '#969696' }}>Unknown tab</div>;
     const data = openFilesRef.current[filePath];
     if (!data) return <div style={{ padding: 16, color: '#969696' }}>Loading…</div>;
+    if (isMediaFile(data.file.mime_type)) {
+      return <MediaTabContent key={filePath} projectId={projectId} filePath={filePath} mimeType={data.file.mime_type} />;
+    }
     return (
       <EditorTabContent
         key={filePath}
@@ -610,6 +684,30 @@ const ProjectEditorInner: React.FC = () => {
 
   const handleUpload = async (file: globalThis.File) => {
     const uploadPath = getTargetPath();
+    const targetFilePath = (uploadPath === '/' ? '' : uploadPath + '/') + file.name;
+    const exists = files.some(f => !f.is_folder && f.path === targetFilePath);
+    if (exists) {
+      const instance = modal.confirm({
+        rootClassName: 'editor-dark-portal',
+        title: t('editor.fileExistsOverwriteTitle'),
+        icon: null,
+        footer: null,
+        content: (
+          <>
+            <p>{t('editor.fileExistsOverwriteContent', { name: file.name })}</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <Button onClick={() => instance.destroy()}>{t('common.cancel')}</Button>
+              <Button type="primary" onClick={async () => {
+                instance.destroy();
+                const response = await apiService.uploadFile(projectId, file, uploadPath, true);
+                handleRespWithNotifySuccess(response, () => { fetchProject(); });
+              }}>{t('editor.overwrite')}</Button>
+            </div>
+          </>
+        ),
+      });
+      return false;
+    }
     const response = await apiService.uploadFile(projectId, file, uploadPath);
     handleRespWithNotifySuccess(response, () => {
       fetchProject();
@@ -617,44 +715,99 @@ const ProjectEditorInner: React.FC = () => {
     return false; // Prevent default upload
   };
 
-  // Handle file drop from external sources
-  const handleFileDrop = async (files: globalThis.File[], targetFolder: FileType | null) => {
-    const uploadPath = targetFolder ? targetFolder.path : '/';
+  // Handle file drop from external sources (supports folders via DroppedFile.relativePath)
+  const handleFileDrop = async (droppedFiles: DroppedFile[], targetFolder: FileType | null) => {
+    const baseUploadPath = targetFolder ? targetFolder.path : '/';
 
-    if (files.length === 1) {
-      // Single file upload
-      const response = await apiService.uploadFile(projectId, files[0], uploadPath);
-      handleRespWithNotifySuccess(response, () => {
-        fetchProject();
+    // Compute actual upload dir for each file based on its relative path
+    const getUploadDir = (relativePath: string) => {
+      const dir = relativePath.includes('/')
+        ? relativePath.substring(0, relativePath.lastIndexOf('/'))
+        : '';
+      if (!dir) return baseUploadPath;
+      return baseUploadPath === '/' ? dir : `${baseUploadPath}/${dir}`;
+    };
+
+    const getTargetFilePath = (relativePath: string) => {
+      const dir = getUploadDir(relativePath);
+      const name = relativePath.split('/').pop()!;
+      return dir === '/' ? name : `${dir}/${name}`;
+    };
+
+    // Separate into conflicting and non-conflicting
+    const conflicting: DroppedFile[] = [];
+    const nonConflicting: DroppedFile[] = [];
+    for (const dropped of droppedFiles) {
+      const targetPath = getTargetFilePath(dropped.relativePath);
+      if (files.some(f => !f.is_folder && f.path === targetPath)) {
+        conflicting.push(dropped);
+      } else {
+        nonConflicting.push(dropped);
+      }
+    }
+
+    // Ask about each conflict one by one, with "Overwrite All" option
+    const toOverwrite: DroppedFile[] = [];
+    let overwriteAll = false;
+
+    for (const dropped of conflicting) {
+      if (overwriteAll) {
+        toOverwrite.push(dropped);
+        continue;
+      }
+      const fileName = dropped.relativePath.split('/').pop()!;
+      const choice = await new Promise<'overwrite' | 'overwriteAll' | 'skip'>((resolve) => {
+        const instance = modal.confirm({
+          rootClassName: 'editor-dark-portal',
+          title: t('editor.fileExistsOverwriteTitle'),
+          icon: null,
+          footer: null,
+          content: (
+            <>
+              <p>{t('editor.fileExistsOverwriteContent', { name: fileName })}</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                <Button onClick={() => { resolve('skip'); instance.destroy(); }}>{t('editor.skip')}</Button>
+                <Button type="primary" onClick={() => { resolve('overwrite'); instance.destroy(); }}>{t('editor.overwrite')}</Button>
+                <Button type="primary" onClick={() => { resolve('overwriteAll'); instance.destroy(); }}>{t('editor.overwriteAll')}</Button>
+              </div>
+            </>
+          ),
+          onCancel: () => resolve('skip'),
+        });
       });
-    } else {
-      // Multiple files upload
-      message.loading({ content: t('common.uploading', { count: files.length }), key: 'filesDrop', duration: 0 });
+      if (choice === 'overwriteAll') {
+        overwriteAll = true;
+        toOverwrite.push(dropped);
+      } else if (choice === 'overwrite') {
+        toOverwrite.push(dropped);
+      }
+    }
 
+    const allToUpload = [
+      ...nonConflicting.map(d => ({ dropped: d, overwrite: false })),
+      ...toOverwrite.map(d => ({ dropped: d, overwrite: true })),
+    ];
+
+    if (allToUpload.length === 0) return;
+
+    if (allToUpload.length === 1) {
+      const { dropped, overwrite } = allToUpload[0];
+      const response = await apiService.uploadFile(projectId, dropped.file, getUploadDir(dropped.relativePath), overwrite);
+      handleRespWithNotifySuccess(response, () => { fetchProject(); });
+    } else {
+      message.loading({ content: t('common.uploading', { count: allToUpload.length }), key: 'filesDrop', duration: 0 });
       let successCount = 0;
       let errorCount = 0;
-
-      for (const file of files) {
-        const response = await apiService.uploadFile(projectId, file, uploadPath);
-        handleRespWithoutNotify(
-          response,
-          () => {
-            successCount++;
-          },
-          () => {
-            errorCount++;
-          }
-        );
+      for (const { dropped, overwrite } of allToUpload) {
+        const response = await apiService.uploadFile(projectId, dropped.file, getUploadDir(dropped.relativePath), overwrite);
+        handleRespWithoutNotify(response, () => { successCount++; }, () => { errorCount++; });
       }
-
       message.destroy('filesDrop');
-
       if (errorCount === 0) {
         message.success(t('editor.uploadedFilesSuccess', { count: successCount }));
       } else {
         message.warning(t('editor.uploadedFilesMixed', { success: successCount, error: errorCount }));
       }
-
       fetchProject();
     }
   };
@@ -750,12 +903,19 @@ const ProjectEditorInner: React.FC = () => {
 
     if (!contextMenuNode) return;
 
+    const isMultiSelect = treeSelectedPaths.size > 1;
+
     switch (e.key) {
       case 'rename':
         setInlineEditState({ type: 'rename', file: contextMenuNode });
         break;
       case 'delete':
-        handleDelete(contextMenuNode);
+        if (isMultiSelect) {
+          const selectedFiles = files.filter(f => treeSelectedPaths.has(f.path));
+          handleDeleteMultiple(selectedFiles);
+        } else {
+          handleDelete(contextMenuNode);
+        }
         break;
       case 'newFolder':
         setInlineEditState({
@@ -849,7 +1009,25 @@ const ProjectEditorInner: React.FC = () => {
     // Check if target path already exists
     const existingFile = files.find(f => f.path === newPath);
     if (existingFile) {
-      message.error(t('editor.fileExistsInTarget'));
+      const instance = modal.confirm({
+        rootClassName: 'editor-dark-portal',
+        title: t('editor.fileExistsOverwriteTitle'),
+        icon: null,
+        footer: null,
+        content: (
+          <>
+            <p>{t('editor.fileExistsOverwriteContent', { name: dragFile.name })}</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <Button onClick={() => instance.destroy()}>{t('common.cancel')}</Button>
+              <Button type="primary" onClick={async () => {
+                instance.destroy();
+                const response = await apiService.moveFileByPath(projectId, dragFile.path, targetPath, true);
+                handleRespWithNotifySuccess(response, () => { fetchProject(); });
+              }}>{t('editor.overwrite')}</Button>
+            </div>
+          </>
+        ),
+      });
       return;
     }
 
@@ -884,6 +1062,43 @@ const ProjectEditorInner: React.FC = () => {
       });
       setOpenFiles(prev => { const n = { ...prev }; delete n[file.path]; return n; });
       fetchProject();
+    });
+  };
+
+  const handleDeleteMultiple = (filesToDelete: FileType[]) => {
+    const deletable = filesToDelete.filter(f => f.path !== 'index.html');
+    if (deletable.length === 0) return;
+    const instance = modal.confirm({
+      rootClassName: 'editor-dark-portal',
+      title: t('editor.deleteFileConfirm'),
+      icon: null,
+      footer: null,
+      content: (
+        <>
+          <p>{t('editor.deleteMultipleConfirmContent', { count: deletable.length })}</p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+            <Button onClick={() => instance.destroy()}>{t('common.cancel')}</Button>
+            <Button danger type="primary" onClick={async () => {
+              instance.destroy();
+              for (const file of deletable) {
+                await apiService.deleteFileByPath(projectId, file.path);
+                flexModel.visitNodes((node) => {
+                  if (node.getType() === 'tab') {
+                    const cfg = (node as TabNode).getConfig() as { filePath?: string };
+                    if (cfg?.filePath === file.path) flexModel.doAction(Actions.deleteTab(node.getId()));
+                  }
+                });
+              }
+              setOpenFiles(prev => {
+                const n = { ...prev };
+                deletable.forEach(f => delete n[f.path]);
+                return n;
+              });
+              fetchProject();
+            }}>{t('editor.delete')}</Button>
+          </div>
+        </>
+      ),
     });
   };
 
@@ -1058,6 +1273,8 @@ const ProjectEditorInner: React.FC = () => {
               }}
               onDragEnd={handleDrop}
               onFileDrop={handleFileDrop}
+              onDeleteMultiple={handleDeleteMultiple}
+              onSelectionChange={setTreeSelectedPaths}
               inlineEditState={inlineEditState}
               onInlineEditStateChange={setInlineEditState}
               onInlineCreate={handleInlineCreate}
@@ -1186,30 +1403,21 @@ const ProjectEditorInner: React.FC = () => {
           <Menu
             className="file-tree-context-menu"
             onClick={handleContextMenuClick}
-            items={[
-              contextMenuNode?.is_folder
-                ? {
-                    key: 'newFolder',
-                    icon: <PlusOutlined />,
-                    label: t('editor.newFolderHere'),
-                  }
-                : null,
-              contextMenuNode?.name !== 'index.html' && contextMenuNode?.path !== 'index.html'
-                ? {
-                    key: 'rename',
-                    icon: <EditOutlined />,
-                    label: t('editor.rename'),
-                  }
-                : null,
-              contextMenuNode?.name !== 'index.html' && contextMenuNode?.path !== 'index.html'
-                ? {
-                    key: 'delete',
-                    icon: <DeleteOutlined />,
-                    label: t('editor.delete'),
-                    danger: true,
-                  }
-                : null,
-            ].filter(Boolean)}
+            items={(() => {
+              const isMultiSelect = treeSelectedPaths.size > 1;
+              const notIndex = contextMenuNode?.name !== 'index.html' && contextMenuNode?.path !== 'index.html';
+              return [
+                !isMultiSelect && contextMenuNode?.is_folder
+                  ? { key: 'newFolder', icon: <PlusOutlined />, label: t('editor.newFolderHere') }
+                  : null,
+                !isMultiSelect && notIndex
+                  ? { key: 'rename', icon: <EditOutlined />, label: t('editor.rename') }
+                  : null,
+                notIndex
+                  ? { key: 'delete', icon: <DeleteOutlined />, label: t('editor.delete'), danger: true }
+                  : null,
+              ].filter(Boolean);
+            })()}
           />
         </div>
       )}
