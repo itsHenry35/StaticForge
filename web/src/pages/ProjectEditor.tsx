@@ -306,6 +306,13 @@ const ProjectEditorInner: React.FC = () => {
       projectResponse,
       (data) => {
         setProject(data);
+        const pageTitle = data.display_name || data.name;
+        if (pageTitle) {
+          apiService.getPublicConfig().then((res) => {
+            const siteName = res.data?.site_name || '';
+            document.title = siteName ? `${pageTitle} - ${siteName}` : pageTitle;
+          });
+        }
         if (data.display_name) {
           settingsForm.setFieldsValue({
             display_name: data.display_name,
@@ -339,7 +346,9 @@ const ProjectEditorInner: React.FC = () => {
   };
 
   useEffect(() => {
+    const prevTitle = document.title;
     fetchProject();
+    return () => { document.title = prevTitle; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
