@@ -290,7 +290,11 @@
     "siteUrl": "网站地址",
     "embedCode": "嵌入代码",
     "copyCode": "复制代码",
-    "urlCopied": "链接已复制"
+    "urlCopied": "链接已复制",
+    "secureSite": "安全站点",
+    "secureSiteHelper": "允许此项目在安全域名上提供服务",
+    "secureSiteDisabled": "仅认证用户或管理员可启用安全站点。如需允许您的站点在安全域名上提供服务，请联系管理员。",
+    "secureUrl": "安全链接"
   },
 
   "profile": {

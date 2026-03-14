@@ -18,6 +18,7 @@ import {
   Statistic,
   Menu,
   Tooltip,
+  Switch,
   ConfigProvider,
   theme as antTheme,
   App,
@@ -44,7 +45,8 @@ import { useTranslation } from 'react-i18next';
 import * as monaco from 'monaco-editor';
 import { loader, Editor } from '@monaco-editor/react';
 import { apiService } from '../services/api';
-import type { Project, File as FileType, Analytics } from '../types';
+import type { Project, File as FileType, Analytics, PublicConfig } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
 import { FileTree } from '../components/FileTree';
 import type { InlineEditState, DroppedFile } from '../components/FileTree';
@@ -130,9 +132,22 @@ const FLEX_CSS = `
   .flexlayout__popup_menu_item:hover { background: rgba(59,130,246,0.25); color: #fff; }
 `;
 
+// ── Switch with Tooltip that forwards Form.Item props correctly ──────────────
+
+const TooltipSwitch: React.FC<{
+  disabled?: boolean;
+  tooltipTitle?: string;
+  checked?: boolean;
+  onChange?: (checked: boolean) => void;
+}> = ({ disabled, tooltipTitle, checked, onChange }) => (
+  <Tooltip title={tooltipTitle}>
+    <Switch checked={checked} onChange={onChange} disabled={disabled} />
+  </Tooltip>
+);
+
 // ── Reusable share content (URL + iframe + QR) ───────────────────────────────
 
-const ShareContent: React.FC<{ siteUrl: string }> = ({ siteUrl }) => {
+const ShareContent: React.FC<{ siteUrl: string; secureUrl?: string }> = ({ siteUrl, secureUrl }) => {
   const { t } = useTranslation();
   const iframeCode = `<iframe src="${siteUrl}" width="100%" height="600" frameborder="0"></iframe>`;
   const copy = (text: string, key: string) => {
@@ -148,6 +163,15 @@ const ShareContent: React.FC<{ siteUrl: string }> = ({ siteUrl }) => {
           <Button icon={<CopyOutlined />} onClick={() => copy(siteUrl, 'editor.urlCopied')} />
         </div>
       </div>
+      {secureUrl && (
+        <div>
+          <div style={{ fontSize: 12, color: '#969696', marginBottom: 6 }}>{t('editor.secureUrl')}</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Input value={secureUrl} readOnly style={{ flex: 1 }} onClick={(e) => e.currentTarget.select()} />
+            <Button icon={<CopyOutlined />} onClick={() => copy(secureUrl, 'editor.urlCopied')} />
+          </div>
+        </div>
+      )}
       <div>
         <div style={{ fontSize: 12, color: '#969696', marginBottom: 6 }}>{t('editor.embedCode')}</div>
         <Input.TextArea
@@ -262,9 +286,11 @@ const EditorTabContent: React.FC<{
 const ProjectEditorInner: React.FC = () => {
   const { t } = useTranslation();
   const { modal } = App.useApp();
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
+  const [publicConfig, setPublicConfig] = useState<PublicConfig | null>(null);
   const [files, setFiles] = useState<FileType[]>([]);
   const [, setLoading] = useState(true);
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -311,6 +337,7 @@ const ProjectEditorInner: React.FC = () => {
           apiService.getPublicConfig().then((res) => {
             const siteName = res.data?.site_name || '';
             document.title = siteName ? `${pageTitle} - ${siteName}` : pageTitle;
+            if (res.data) setPublicConfig(res.data);
           });
         }
         if (data.display_name) {
@@ -318,6 +345,7 @@ const ProjectEditorInner: React.FC = () => {
             display_name: data.display_name,
             description: data.description,
             is_published: data.is_published,
+            is_secure: data.is_secure,
           });
         }
       },
@@ -1111,9 +1139,13 @@ const ProjectEditorInner: React.FC = () => {
     });
   };
 
-  const handleUpdateSettings = async (values: { display_name?: string; description?: string }) => {
+  const handleUpdateSettings = async (values: { display_name?: string; description?: string; is_secure?: boolean }) => {
     // Update project info only (no publish status)
-    const updateResponse = await apiService.updateProject(projectId, values);
+    const updateResponse = await apiService.updateProject(projectId, {
+      display_name: values.display_name,
+      description: values.description,
+      is_secure: values.is_secure,
+    });
     handleRespWithNotifySuccess(updateResponse, () => {
       setSettingsVisible(false);
       fetchProject();
@@ -1455,6 +1487,20 @@ const ProjectEditorInner: React.FC = () => {
             <Input.TextArea rows={3} />
           </Form.Item>
 
+          {publicConfig?.secure_host && (
+            <Form.Item
+              name="is_secure"
+              label={t('editor.secureSite')}
+              valuePropName="checked"
+              extra={user && (user.type === 'verified' || user.type === 'admin') ? t('editor.secureSiteHelper') : t('editor.secureSiteDisabled')}
+            >
+              <TooltipSwitch
+                disabled={!user || user.type === 'normal'}
+                tooltipTitle={user?.type === 'normal' ? t('editor.secureSiteDisabled') : undefined}
+              />
+            </Form.Item>
+          )}
+
           <Form.Item>
             <Space className="w-full justify-end">
               <Button onClick={() => setSettingsVisible(false)}>{t('editor.cancel')}</Button>
@@ -1548,6 +1594,13 @@ const ProjectEditorInner: React.FC = () => {
         >
           <ShareContent
             siteUrl={`${window.location.protocol}//${window.location.host}/s/${project.name}`}
+            secureUrl={
+              project.is_secure &&
+              publicConfig?.secure_host &&
+              user && (user.type === 'verified' || user.type === 'admin')
+                ? `${window.location.protocol}//${publicConfig.secure_host}/s/${project.name}`
+                : undefined
+            }
           />
         </Modal>
       )}

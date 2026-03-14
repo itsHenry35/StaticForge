@@ -19,10 +19,10 @@
     var project   = sf.project;
     var workspace = sf.workspace;
 
-    document.getElementById('t').textContent = zh ? '内容不可访问' : 'Content Not Available';
+    document.getElementById('t').textContent = zh ? '内容不可在此访问' : 'Content Not Available Here';
     document.getElementById('d').textContent = zh
-      ? '此域名仅展示来自受信任发布者的内容，当前项目在此处不可访问。如需访问此项目，请联系管理员将项目所有者设置为受信任的发布者。'
-      : 'This domain only serves content from verified publishers. This project is not available here. Please contact the administrator to have the project owner set as a verified publisher.';
+      ? '此项目已被手动设置为不安全的站点，无法通过安全域名访问。如需访问，请联系项目所有者更改项目设置。'
+      : 'This project is not configured for secure hosting and cannot be accessed on this domain. If you need access, please contact the project owner to change the project settings.';
 
     if (workspace) {
       var href  = project ? '//' + workspace + '/s/' + project + '/' : '//' + workspace;

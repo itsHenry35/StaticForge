@@ -59,6 +59,16 @@ func ServeStaticSite(c *gin.Context) {
 		return
 	}
 
+	// Secure host: trusted user but project is not marked as secure
+	if isOnSecureHost(c, cfg) && (project.User.IsAdmin() || project.User.IsVerified()) && !project.IsSecure {
+		params := map[string]string{"project": projectName}
+		if cfg.SiteHost != "" {
+			params["workspace"] = cfg.SiteHost
+		}
+		ServeErrorPage(c, http.StatusForbidden, "notsecuresite.html", params)
+		return
+	}
+
 	// Project disabled
 	if !project.IsActive {
 		ServeErrorPage(c, http.StatusForbidden, "projectdisabled.html", nil)

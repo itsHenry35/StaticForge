@@ -17,6 +17,7 @@ export interface Project {
   username: string;
   is_published: boolean;
   is_active: boolean;
+  is_secure: boolean;
   has_password: boolean;
   created_at: string;
   updated_at: string;
@@ -91,6 +92,7 @@ export interface CreateProjectRequest {
 export interface UpdateProjectRequest {
   display_name?: string;
   description?: string;
+  is_secure?: boolean;
 }
 
 export interface PublishProjectRequest {
@@ -136,6 +138,8 @@ export interface PublicConfig {
   allow_register: boolean;
   logo_url?: string;
   site_name?: string;
+  site_host?: string;
+  secure_host?: string;
 }
 
 export interface OAuthConfigFull {

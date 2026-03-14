@@ -290,7 +290,11 @@
     "siteUrl": "Site URL",
     "embedCode": "Embed Code",
     "copyCode": "Copy Code",
-    "urlCopied": "URL copied"
+    "urlCopied": "URL copied",
+    "secureSite": "Secure Site",
+    "secureSiteHelper": "Allow this project to be served on the secure host domain",
+    "secureSiteDisabled": "Only verified or admin users can enable secure site",
+    "secureUrl": "Secure URL"
   },
 
   "profile": {

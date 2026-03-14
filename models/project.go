@@ -17,6 +17,7 @@ type Project struct {
 	UserID      uint   `gorm:"not null;index" json:"user_id"`
 	IsPublished bool   `gorm:"default:false" json:"is_published"`
 	IsActive    bool   `gorm:"default:true" json:"is_active"`
+	IsSecure    bool   `gorm:"default:true" json:"is_secure"`
 	Password    string `gorm:"size:255" json:"-"` // bcrypt hash for access password
 	HasPassword bool   `gorm:"default:false" json:"has_password"`
 

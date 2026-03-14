@@ -91,6 +91,7 @@ func CreateProject(c *gin.Context) {
 		Username:    username.(string),
 		IsPublished: project.IsPublished,
 		IsActive:    project.IsActive,
+		IsSecure:    project.IsSecure,
 		HasPassword: project.HasPassword,
 		CreatedAt:   project.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   project.UpdatedAt.Format(time.RFC3339),
@@ -119,6 +120,7 @@ func GetProjects(c *gin.Context) {
 			Username:    username.(string),
 			IsPublished: project.IsPublished,
 			IsActive:    project.IsActive,
+			IsSecure:    project.IsSecure,
 			HasPassword: project.HasPassword,
 			CreatedAt:   project.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:   project.UpdatedAt.Format(time.RFC3339),
@@ -157,6 +159,7 @@ func GetProjectByID(c *gin.Context) {
 			Username:    project.User.Username,
 			IsPublished: project.IsPublished,
 			IsActive:    project.IsActive,
+			IsSecure:    project.IsSecure,
 			HasPassword: project.HasPassword,
 			CreatedAt:   project.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:   project.UpdatedAt.Format(time.RFC3339),
@@ -198,6 +201,10 @@ func UpdateProject(c *gin.Context) {
 		updates["description"] = req.Description
 	}
 
+	if req.IsSecure != nil {
+		updates["is_secure"] = *req.IsSecure
+	}
+
 	if len(updates) > 0 {
 		if err := database.DB.Model(&project).Updates(updates).Error; err != nil {
 			utils.InternalServerError(c, utils.MsgProjectUpdateFailed)
@@ -216,6 +223,7 @@ func UpdateProject(c *gin.Context) {
 		Username:    project.User.Username,
 		IsPublished: project.IsPublished,
 		IsActive:    project.IsActive,
+		IsSecure:    project.IsSecure,
 		HasPassword: project.HasPassword,
 		CreatedAt:   project.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   project.UpdatedAt.Format(time.RFC3339),
@@ -337,6 +345,7 @@ func GetAllProjects(c *gin.Context) {
 			Username:    project.User.Username,
 			IsPublished: project.IsPublished,
 			IsActive:    project.IsActive,
+			IsSecure:    project.IsSecure,
 			HasPassword: project.HasPassword,
 			CreatedAt:   project.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:   project.UpdatedAt.Format(time.RFC3339),

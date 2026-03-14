@@ -13,6 +13,7 @@ type CreateProjectRequest struct {
 type UpdateProjectRequest struct {
 	DisplayName string `json:"display_name"`
 	Description string `json:"description"`
+	IsSecure    *bool  `json:"is_secure"`
 }
 
 type PublishProjectRequest struct {
@@ -33,6 +34,7 @@ type ProjectResponse struct {
 	Username    string `json:"username"`
 	IsPublished bool   `json:"is_published"`
 	IsActive    bool   `json:"is_active"`
+	IsSecure    bool   `json:"is_secure"`
 	HasPassword bool   `json:"has_password"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
