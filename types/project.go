@@ -32,6 +32,7 @@ type ProjectResponse struct {
 	Description string `json:"description"`
 	UserID      uint   `json:"user_id"`
 	Username    string `json:"username"`
+	OwnerType   string `json:"owner_type"`
 	IsPublished bool   `json:"is_published"`
 	IsActive    bool   `json:"is_active"`
 	IsSecure    bool   `json:"is_secure"`

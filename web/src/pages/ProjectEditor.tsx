@@ -46,7 +46,6 @@ import * as monaco from '../monacoSetup';
 import { loader, Editor } from '@monaco-editor/react';
 import { apiService } from '../services/api';
 import type { Project, File as FileType, Analytics, PublicConfig } from '../types';
-import { useAuth } from '../contexts/AuthContext';
 import { handleRespWithoutNotify, handleRespWithNotifySuccess } from '../utils/handleResp';
 import { FileTree } from '../components/FileTree';
 import type { InlineEditState, DroppedFile } from '../components/FileTree';
@@ -284,7 +283,6 @@ const EditorTabContent: React.FC<{
 const ProjectEditorInner: React.FC = () => {
   const { t } = useTranslation();
   const { modal } = App.useApp();
-  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
@@ -343,7 +341,7 @@ const ProjectEditorInner: React.FC = () => {
             display_name: data.display_name,
             description: data.description,
             is_published: data.is_published,
-            is_secure: (user?.type === 'verified' || user?.type === 'admin') ? data.is_secure : false,
+            is_secure: (data.owner_type === 'verified' || data.owner_type === 'admin') ? data.is_secure : false,
           });
         }
       },
@@ -1490,11 +1488,11 @@ const ProjectEditorInner: React.FC = () => {
               name="is_secure"
               label={t('editor.secureSite')}
               valuePropName="checked"
-              extra={user && (user.type === 'verified' || user.type === 'admin') ? t('editor.secureSiteHelper') : t('editor.secureSiteDisabled')}
+              extra={(project?.owner_type === 'verified' || project?.owner_type === 'admin') ? t('editor.secureSiteHelper') : t('editor.secureSiteDisabled')}
             >
               <TooltipSwitch
-                disabled={!user || user.type === 'normal'}
-                tooltipTitle={user?.type === 'normal' ? t('editor.secureSiteDisabled') : undefined}
+                disabled={project?.owner_type !== 'verified' && project?.owner_type !== 'admin'}
+                tooltipTitle={(project?.owner_type !== 'verified' && project?.owner_type !== 'admin') ? t('editor.secureSiteDisabled') : undefined}
               />
             </Form.Item>
           )}
@@ -1595,7 +1593,7 @@ const ProjectEditorInner: React.FC = () => {
             secureUrl={
               project.is_secure &&
               publicConfig?.secure_host &&
-              user && (user.type === 'verified' || user.type === 'admin')
+              (project.owner_type === 'verified' || project.owner_type === 'admin')
                 ? `${window.location.protocol}//${publicConfig.secure_host}/s/${project.name}`
                 : undefined
             }

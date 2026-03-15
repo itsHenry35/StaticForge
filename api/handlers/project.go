@@ -157,6 +157,7 @@ func GetProjectByID(c *gin.Context) {
 			Description: project.Description,
 			UserID:      project.UserID,
 			Username:    project.User.Username,
+			OwnerType:   project.User.Type,
 			IsPublished: project.IsPublished,
 			IsActive:    project.IsActive,
 			IsSecure:    project.IsSecure,

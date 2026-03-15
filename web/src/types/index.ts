@@ -15,6 +15,7 @@ export interface Project {
   description?: string;
   user_id: number;
   username: string;
+  owner_type?: string;
   is_published: boolean;
   is_active: boolean;
   is_secure: boolean;
